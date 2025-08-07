@@ -308,6 +308,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final data = notification.data;
     if (data.containsKey('rentalId')) {
       _navigateToRentalDetails(data['rentalId'], data['productId']);
+    } else if (data.containsKey('requestId') && data['requestType'] == 'bulk_rental') {
+      _navigateToBulkRentalRequests();
+    }
+  }
+
+  void _navigateToBulkRentalRequests() {
+    if (mounted) {
+      Navigator.pushNamed(context, '/bulk-rental-requests');
     }
   }
 

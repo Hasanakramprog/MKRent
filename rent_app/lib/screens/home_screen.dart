@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
+import '../services/cart_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/search_bar_widget.dart';
@@ -355,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 Transform.scale(
                   scale: 0.8 + (0.2 * _fabAnimation.value),
                   child: FloatingActionButton(
-                    heroTag: heroTag,
+                    heroTag: "home_${heroTag}_${AuthService.isAdmin ? 'admin' : 'customer'}",
                     onPressed: _isFabExpanded ? onPressed : null,
                     backgroundColor: backgroundColor,
                     foregroundColor: foregroundColor,
@@ -613,24 +614,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   // MKPro Logo Image
                   Container(
-                    height: 55, // Height that matches the original location section
-                    width: 130, // Width to fit the content area
+                    height: 50, // Height that matches the original location section
+                    width: 110, // Width to fit the content area
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.asset(
                         'assets/images/logos/MKPro.jpg',
-                        height: 55,
-                        width: 130,
+                        height: 50,
+                        width: 110,
                         fit: BoxFit.cover, // Fill the container while maintaining aspect ratio
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            height: 55,
-                            width: 130,
+                            height: 50,
+                            width: 110,
                             decoration: BoxDecoration(
                               color: const Color(0xFF1A1A1A),
                               borderRadius: BorderRadius.circular(8),
@@ -651,9 +652,70 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     ),
                   ),
                   const Spacer(),
+                  // Cart button with badge
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A), // Dark gray
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFD700).withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: StreamBuilder<int>(
+                      stream: CartService.getCartItemCountStream(),
+                      builder: (context, snapshot) {
+                        final itemCount = snapshot.data ?? 0;
+                        return Stack(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/cart');
+                              },
+                              icon: const Icon(
+                                Icons.shopping_cart,
+                                color: Color(0xFFFFD700),
+                              ),
+                              tooltip: 'Cart',
+                            ),
+                            if (itemCount > 0)
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 18,
+                                    minHeight: 18,
+                                  ),
+                                  child: Text(
+                                    itemCount > 99 ? '99+' : '$itemCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                   // App Switcher button
                   Container(
-                    margin: const EdgeInsets.only(right: 12),
+                    margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A1A1A), // Dark gray
                       borderRadius: BorderRadius.circular(12),
@@ -678,7 +740,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   ),
                   // Notification button
                   Container(
-                    margin: const EdgeInsets.only(right: 12),
+                    margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A1A1A), // Dark gray
                       borderRadius: BorderRadius.circular(12),
@@ -1010,16 +1072,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               foregroundColor: Colors.black,
             ),
             const SizedBox(height: 16),
+            _buildAnimatedFab(
+              heroTag: "bulk_requests",
+              onPressed: () {
+                if (!mounted) return;
+                Navigator.pushNamed(context, '/bulk-rental-requests');
+              },
+              icon: Icons.shopping_cart_checkout,
+              label: "Requests",
+              backgroundColor: const Color(0xFFFFD700),
+              foregroundColor: Colors.black,
+            ),
+            const SizedBox(height: 16),
           ],
           // Show My Requests only for customer users (not admin)
           if (!AuthService.isAdmin) ...[
             _buildAnimatedFab(
-              heroTag: "my_requests",
+              heroTag: "my_bulk_requests",
               onPressed: () {
                 if (!mounted) return;
-                Navigator.pushNamed(context, '/rental-requests');
+                Navigator.pushNamed(context, '/bulk-rental-requests');
               },
-              icon: Icons.receipt_long,
+              icon: Icons.shopping_cart_checkout,
               label: "My Requests",
               backgroundColor: const Color(0xFF1A1A1A),
               foregroundColor: const Color(0xFFFFD700),
@@ -1028,7 +1102,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           ],
           // Main toggle FAB
           FloatingActionButton(
-            heroTag: "main_toggle",
+            heroTag: "home_main_toggle_${AuthService.isAdmin ? 'admin' : 'customer'}",
             onPressed: _toggleFabLabels,
             backgroundColor: const Color(0xFFFFD700),
             foregroundColor: Colors.black,

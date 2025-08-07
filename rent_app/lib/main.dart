@@ -3,7 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/app_selection_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/rental_booking_screen.dart';
 import 'screens/rental_confirmation_screen.dart';
 import 'screens/rental_requests_screen.dart';
 import 'screens/store_management_screen.dart';
@@ -13,6 +12,8 @@ import 'screens/welcome_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/rental_details_screen.dart';
 import 'screens/category_management_screen.dart';
+import 'screens/cart_screen.dart';
+import 'screens/bulk_rental_requests_screen.dart';
 import 'models/rental.dart';
 import 'models/product.dart';
 import 'services/auth_service.dart';
@@ -85,7 +86,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RentApp',
+      title: 'MKPro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme:
@@ -114,10 +115,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       home: const AppSelectionScreen(),
       onGenerateRoute: (settings) {
         switch (settings.name) {
-          case '/rental-booking':
-            final product = settings.arguments as Product;
+          case '/cart':
             return MaterialPageRoute(
-              builder: (context) => RentalBookingScreen(product: product),
+              builder: (context) => const CartScreen(),
+            );
+          case '/bulk-rental-requests':
+            return MaterialPageRoute(
+              builder: (context) => const BulkRentalRequestsScreen(),
             );
           case '/rental-confirmation':
             final args = settings.arguments as Map<String, dynamic>;

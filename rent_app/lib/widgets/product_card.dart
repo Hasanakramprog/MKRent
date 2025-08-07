@@ -3,6 +3,7 @@ import 'cached_image_widget.dart';
 import 'asset_image_widget.dart';
 import '../models/product.dart';
 import '../screens/product_detail_screen.dart';
+import '../services/cart_service.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -182,7 +183,7 @@ class ProductCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    // Availability Status
+                    // Availability Status and Actions
                     Row(
                       children: [
                         Container(
@@ -194,18 +195,39 @@ class ProductCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            product.isAvailable ? 'Available' : 'Rented',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: product.isAvailable ? Colors.green : Colors.red,
-                            ),
+                        Text(
+                          product.isAvailable ? 'Available' : 'Rented',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: product.isAvailable ? Colors.green : Colors.red,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // Quick View Button
+                        const Spacer(),
+                        // Add to Cart Button
+                        if (product.isAvailable) ...[
+                          InkWell(
+                            onTap: () => _showAddToCartDialog(context),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD700).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: const Color(0xFFFFD700),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.shopping_cart_outlined,
+                                size: 14,
+                                color: Color(0xFFFFD700),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        // View Button
                         SizedBox(
                           height: 24,
                           child: ElevatedButton(
@@ -245,5 +267,299 @@ class ProductCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showAddToCartDialog(BuildContext context) {
+    DateTime startDate = DateTime.now();
+    DateTime endDate = DateTime.now().add(const Duration(days: 1));
+    int quantity = 1;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text(
+            'Add to Cart',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Product Info
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CachedImageWidget(
+                        imageUrl: product.imageUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          '\$${product.price.toStringAsFixed(2)}/day',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFFFFD700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Quantity
+              Row(
+                children: [
+                  const Text(
+                    'Quantity:',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  const Spacer(),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            if (quantity > 1) {
+                              setState(() => quantity--);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(
+                              Icons.remove,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Text(
+                            '$quantity',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => setState(() => quantity++),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(
+                              Icons.add,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Start Date
+              Row(
+                children: [
+                  const Text(
+                    'Start Date:',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: startDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          startDate = date;
+                          if (endDate.isBefore(startDate)) {
+                            endDate = startDate.add(const Duration(days: 1));
+                          }
+                        });
+                      }
+                    },
+                    child: Text(
+                      '${startDate.day}/${startDate.month}/${startDate.year}',
+                      style: const TextStyle(color: Color(0xFFFFD700)),
+                    ),
+                  ),
+                ],
+              ),
+
+              // End Date
+              Row(
+                children: [
+                  const Text(
+                    'End Date:',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: endDate,
+                        firstDate: startDate,
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() => endDate = date);
+                      }
+                    },
+                    child: Text(
+                      '${endDate.day}/${endDate.month}/${endDate.year}',
+                      style: const TextStyle(color: Color(0xFFFFD700)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Total Calculation
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Days:',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          '${endDate.difference(startDate).inDays + 1}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total:',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '\$${((endDate.difference(startDate).inDays + 1) * quantity * product.price).toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Color(0xFFFFD700),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _addToCart(
+                  context,
+                  quantity: quantity,
+                  startDate: startDate,
+                  endDate: endDate,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Add to Cart'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addToCart(
+    BuildContext context, {
+    required int quantity,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      await CartService.addToCart(
+        productId: product.id,
+        productName: product.name,
+        productImageUrl: product.imageUrl,
+        dailyRate: product.price,
+        quantity: quantity,
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Product added to cart!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add to cart: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
