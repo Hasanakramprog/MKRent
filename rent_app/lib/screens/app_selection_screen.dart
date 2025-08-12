@@ -72,13 +72,17 @@ class AppSelectionScreen extends StatelessWidget {
                     // Rent App Option
                     _buildAppOption(
                       context: context,
-                      title: 'Rent App',
+                      title: AuthService.isLoggedIn 
+                          ? 'Rent App (${AuthService.currentUser?.name ?? 'Signed In'})'
+                          : 'Rent App',
                       subtitle: 'Camera & Equipment Rental',
-                      description: 'Rent out cameras, lenses, and equipment to customers',
+                      description: AuthService.isLoggedIn 
+                          ? 'Welcome back! Continue renting equipment'
+                          : 'Rent out cameras, lenses, and equipment to customers',
                       icon: Icons.camera_alt,
                       color: const Color(0xFFFFD700),
                       isAvailable: true,
-                      onTap: () => _selectApp(context, 'rent'),
+                      onTap: () => _handleRentAppSelection(context),
                     ),
                     
                     const SizedBox(height: 16),
@@ -225,6 +229,171 @@ class AppSelectionScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleRentAppSelection(BuildContext context) {
+    // Show loading indicator while checking authentication
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
+        ),
+      ),
+    );
+
+    // Small delay to show loading (better UX)
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.pop(context); // Close loading dialog
+      
+      // Check if user is already authenticated
+      if (AuthService.isLoggedIn) {
+        // User is already signed in, go directly to main app
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        // User is not signed in, show guest/sign-in options
+        _showRentAppOptions(context);
+      }
+    });
+  }
+
+  void _showRentAppOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              Text(
+                'Choose how to access Rent App',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Browse as Guest Option
+              _buildAccessOption(
+                context: context,
+                title: 'Browse as Guest',
+                subtitle: 'View products without signing in',
+                icon: Icons.visibility,
+                color: const Color(0xFF4CAF50),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushReplacementNamed(context, '/guest-home');
+                },
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Sign In Option
+              _buildAccessOption(
+                context: context,
+                title: 'Sign In to Rent',
+                subtitle: 'Access all features and rent products',
+                icon: Icons.login,
+                color: const Color(0xFFFFD700),
+                onTap: () {
+                  Navigator.pop(context);
+                  _selectApp(context, 'rent');
+                },
+              ),
+              
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccessOption({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: color,
+              size: 16,
+            ),
           ],
         ),
       ),

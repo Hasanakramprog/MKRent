@@ -411,7 +411,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         height: 56,
                         child: ElevatedButton(
                           onPressed: _currentProduct.isAvailable
-                              ? () => _showAddToCartDialog()
+                              ? () => _handleAddToCart()
                               : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _currentProduct.isAvailable
@@ -462,6 +462,130 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<String> _getImageList() {
     // For now, we'll use the main image. In the future, you can add multiple images
     return [_currentProduct.imageUrl];
+  }
+
+  void _handleAddToCart() {
+    // Check if user is authenticated
+    if (!AuthService.isLoggedIn) {
+      _showGuestSignInDialog();
+      return;
+    }
+    
+    // User is authenticated, show add to cart dialog
+    _showAddToCartDialog();
+  }
+
+  void _showGuestSignInDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.login,
+              color: const Color(0xFFFFD700),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Sign In Required',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'To rent products and add them to your cart, you need to sign in with your phone number.',
+              style: TextStyle(
+                color: Colors.grey[300],
+                fontSize: 16,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFFFD700).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.security,
+                    color: const Color(0xFFFFD700),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Safe & secure phone verification',
+                      style: TextStyle(
+                        color: Colors.grey[300],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Continue Browsing',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 16,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/welcome');
+            },
+            icon: const Icon(
+              Icons.phone_android,
+              color: Colors.black,
+              size: 20,
+            ),
+            label: const Text(
+              'Sign In',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFD700),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddToCartDialog() {

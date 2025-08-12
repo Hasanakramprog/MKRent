@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
@@ -11,7 +12,9 @@ import '../widgets/notification_badge.dart';
 import '../widgets/brand_slider.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool isGuestMode;
+  
+  const HomeScreen({super.key, this.isGuestMode = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,9 +27,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   String _selectedCategory = 'All';
   String _searchQuery = '';
   double _minPrice = 0;
-  double _maxPrice = 150;
+  double _maxPrice = 1000;
   double _minRating = 0;
   bool _isLoading = true;
+  
+  bool get _isGuestMode => widget.isGuestMode;
 
   // Animation controllers for FAB labels
   late AnimationController _fabAnimationController;
@@ -614,24 +619,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: Row(
                 children: [
-                  // MKPro Logo Image
+                  // MKPro Logo Image - Made smaller to fit better
                   Container(
-                    height: 50, // Height that matches the original location section
-                    width: 110, // Width to fit the content area
+                    height: 40,
+                    width: 80,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.asset(
                         'assets/images/logos/MKPro.jpg',
-                        height: 50,
-                        width: 110,
-                        fit: BoxFit.cover, // Fill the container while maintaining aspect ratio
+                        height: 40,
+                        width: 80,
+                        fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            height: 50,
-                            width: 110,
+                            height: 40,
+                            width: 80,
                             decoration: BoxDecoration(
                               color: const Color(0xFF1A1A1A),
                               borderRadius: BorderRadius.circular(8),
@@ -641,7 +646,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                                 'MKPro',
                                 style: TextStyle(
                                   color: Color(0xFFFFD700),
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -652,103 +657,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     ),
                   ),
                   const Spacer(),
-                  // Cart button with badge
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A), // Dark gray
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFFD700).withOpacity(0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: StreamBuilder<int>(
-                      stream: CartService.getCartItemCountStream(),
-                      builder: (context, snapshot) {
-                        final itemCount = snapshot.data ?? 0;
-                        return Stack(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/cart');
-                              },
-                              icon: const Icon(
-                                Icons.shopping_cart,
-                                color: Color(0xFFFFD700),
-                              ),
-                              tooltip: 'Cart',
-                            ),
-                            if (itemCount > 0)
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.white, width: 1),
-                                  ),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 18,
-                                    minHeight: 18,
-                                  ),
-                                  child: Text(
-                                    itemCount > 99 ? '99+' : '$itemCount',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
+                  // Cart button with badge (authenticated users) or Sign In button (guests)
+                  _isGuestMode
+                      ? _buildGuestSignInButton()
+                      : _buildCartButton(),
+                  // App Switcher button - Made more compact
+                  _buildCompactIconButton(
+                    onPressed: () => _showAppSwitcher(),
+                    icon: Icons.apps,
+                    tooltip: 'Switch App',
+                    marginRight: 4,
                   ),
-                  // App Switcher button
+                  // Notification button - Made more compact
                   Container(
-                    margin: const EdgeInsets.only(right: 8),
+                    margin: const EdgeInsets.only(right: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A), // Dark gray
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0xFFFFD700).withOpacity(0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        _showAppSwitcher();
-                      },
-                      icon: const Icon(
-                        Icons.apps,
-                        color: Color(0xFFFFD700),
-                      ),
-                      tooltip: 'Switch App',
-                    ),
-                  ),
-                  // Notification button
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A), // Dark gray
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFFD700).withOpacity(0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
@@ -756,20 +686,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       iconColor: Color(0xFFFFD700),
                     ),
                   ),
+                  // Profile menu button - Made more compact
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A), // Dark gray
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0xFFFFD700).withOpacity(0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.person, color: Color(0xFFFFD700)),
+                      icon: const Icon(Icons.person, color: Color(0xFFFFD700), size: 20),
                       color: const Color(0xFF1A1A1A),
                       onSelected: (value) {
                         if (value == 'logout') {
@@ -1012,36 +943,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           onRefresh: _refreshProducts,
                           color: const Color(0xFFFFD700),
                           backgroundColor: const Color(0xFF1A1A1A),
-                          child: GridView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 0.75,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
+                          child: CustomScrollView(
+                            slivers: [
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                sliver: SliverGrid(
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 0.75,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                  ),
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      return ProductCard(
+                                        product: _filteredProducts[index],
+                                        onProductUpdated: () {
+                                          // Refresh products when a product is updated or deleted
+                                          _refreshProducts();
+                                        },
+                                      );
+                                    },
+                                    childCount: _filteredProducts.length,
+                                  ),
                                 ),
-                            itemCount: _filteredProducts.length,
-                            itemBuilder: (context, index) {
-                              return ProductCard(
-                                product: _filteredProducts[index],
-                                onProductUpdated: () {
-                                  // Refresh products when a product is updated or deleted
-                                  _refreshProducts();
-                                },
-                              );
-                            },
+                              ),
+                              // Social Media Footer
+                              SliverToBoxAdapter(
+                                child: _buildSocialMediaFooter(),
+                              ),
+                            ],
                           ),
                         ),
             ),
           ],
         ),
       ),
-      floatingActionButton: Column(
+      floatingActionButton: _isGuestMode ? null : Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Show Store Management only for admin users
+          // Show Admin options only for admin users
           if (AuthService.isAdmin) ...[
             _buildAnimatedFab(
               heroTag: "add_product",
@@ -1061,25 +1003,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             ),
             const SizedBox(height: 16),
             _buildAnimatedFab(
-              heroTag: "store_management",
+              heroTag: "rent_requests_admin",
               onPressed: () {
                 if (!mounted) return;
-                Navigator.pushNamed(context, '/store-management');
+                _showAdminOptionsBottomSheet(context);
               },
-              icon: Icons.business,
-              label: "Store Management",
-              backgroundColor: const Color(0xFFFFD700),
-              foregroundColor: Colors.black,
-            ),
-            const SizedBox(height: 16),
-            _buildAnimatedFab(
-              heroTag: "bulk_requests",
-              onPressed: () {
-                if (!mounted) return;
-                Navigator.pushNamed(context, '/bulk-rental-requests');
-              },
-              icon: Icons.shopping_cart_checkout,
-              label: "Requests",
+              icon: Icons.assignment,
+              label: "Rent Requests",
               backgroundColor: const Color(0xFFFFD700),
               foregroundColor: Colors.black,
             ),
@@ -1088,12 +1018,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           // Show My Requests only for customer users (not admin)
           if (!AuthService.isAdmin) ...[
             _buildAnimatedFab(
-              heroTag: "my_bulk_requests",
+              heroTag: "my_requests",
               onPressed: () {
                 if (!mounted) return;
                 Navigator.pushNamed(context, '/bulk-rental-requests');
               },
-              icon: Icons.shopping_cart_checkout,
+              icon: Icons.assignment,
               label: "My Requests",
               backgroundColor: const Color(0xFF1A1A1A),
               foregroundColor: const Color(0xFFFFD700),
@@ -1121,5 +1051,422 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         ],
       ),
     );
+  }
+
+  Widget _buildCartButton() {
+    return Container(
+      margin: const EdgeInsets.only(right: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: StreamBuilder<int>(
+        stream: CartService.getCartItemCountStream(),
+        builder: (context, snapshot) {
+          final itemCount = snapshot.data ?? 0;
+          return Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/cart');
+                },
+                icon: const Icon(
+                  Icons.shopping_cart,
+                  color: Color(0xFFFFD700),
+                  size: 20,
+                ),
+                tooltip: 'Cart',
+              ),
+              if (itemCount > 0)
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(1),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white, width: 1),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      itemCount > 99 ? '99+' : '$itemCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGuestSignInButton() {
+    return Container(
+      margin: const EdgeInsets.only(right: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextButton.icon(
+        onPressed: () {
+          Navigator.pushReplacementNamed(context, '/welcome');
+        },
+        icon: const Icon(
+          Icons.login,
+          color: Color(0xFFFFD700),
+          size: 16,
+        ),
+        label: const Text(
+          'Sign In',
+          style: TextStyle(
+            color: Color(0xFFFFD700),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          minimumSize: Size.zero,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactIconButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String tooltip,
+    double marginRight = 8,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(right: marginRight),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          color: const Color(0xFFFFD700),
+          size: 20,
+        ),
+        tooltip: tooltip,
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(
+          minWidth: 36,
+          minHeight: 36,
+        ),
+      ),
+    );
+  }
+
+  void _showAdminOptionsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              Text(
+                'Rent Requests Management',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Rent Requests Option
+              _buildAdminOption(
+                context: context,
+                title: 'View Rent Requests',
+                subtitle: 'Manage customer rental requests',
+                icon: Icons.assignment_turned_in,
+                color: const Color(0xFFFFD700),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/bulk-rental-requests');
+                },
+              ),
+              
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminOption({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: color,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialMediaFooter() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[800]!, width: 1),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Connect With Us',
+            style: TextStyle(
+              color: Colors.grey[300],
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Follow us on social media for updates and exclusive offers',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildSocialMediaButton(
+                icon: Icons.camera_alt,
+                label: 'Instagram',
+                color: const Color(0xFFE4405F),
+                onTap: () => _launchSocialMedia('instagram'),
+              ),
+              _buildSocialMediaButton(
+                icon: Icons.chat,
+                label: 'WhatsApp',
+                color: const Color(0xFF25D366),
+                onTap: () => _launchSocialMedia('whatsapp'),
+              ),
+              _buildSocialMediaButton(
+                icon: Icons.facebook,
+                label: 'Facebook',
+                color: const Color(0xFF1877F2),
+                onTap: () => _launchSocialMedia('facebook'),
+              ),
+              _buildSocialMediaButton(
+                icon: Icons.music_note,
+                label: 'TikTok',
+                color: const Color(0xFF000000),
+                onTap: () => _launchSocialMedia('tiktok'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '© 2025 MK Rent. All rights reserved.',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialMediaButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _launchSocialMedia(String platform) async {
+    String url = '';
+    switch (platform) {
+      case 'instagram':
+        url = 'https://www.instagram.com/mkpro_eq/'; // Replace with your actual Instagram
+        break;
+      case 'whatsapp':
+        url = 'https://wa.me/76808887'; // Replace with your actual WhatsApp number
+        break;
+      case 'facebook':
+        url = 'https://www.facebook.com/MKProOffical/'; // Replace with your actual Facebook page
+        break;
+      case 'tiktok':
+        url = 'https://www.tiktok.com/@mkproeq'; // Replace with your actual TikTok
+        break;
+    }
+    
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open $platform'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.fixed,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening $platform: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.fixed,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }

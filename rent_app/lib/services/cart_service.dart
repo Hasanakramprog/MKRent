@@ -211,7 +211,7 @@ class CartService {
     }
   }
 
-  // Bulk Rental Request Management
+  // Rental Request Management
   static Future<String> submitBulkRentalRequest() async {
     try {
       final userId = AuthService.currentUser?.id;
@@ -249,10 +249,10 @@ class CartService {
       // Send notification to admin (you can implement this based on your notification system)
       await _notifyAdminOfNewRequest(bulkRequest);
 
-      print('Bulk rental request submitted successfully');
+      print('Rental request submitted successfully');
       return requestId;
     } catch (e) {
-      print('Error submitting bulk rental request: $e');
+      print('Error submitting rental request: $e');
       throw e;
     }
   }
@@ -270,7 +270,7 @@ class CartService {
           message: '${request.userName} submitted a rental request for ${request.totalItems} items (Total: \$${request.originalTotal.toStringAsFixed(2)})',
           data: {
             'requestId': request.id,
-            'requestType': 'bulk_rental',
+            'requestType': 'rental_request',
             'userId': request.userId,
             'userName': request.userName,
             'totalItems': request.totalItems.toString(),
@@ -279,7 +279,7 @@ class CartService {
         );
       }
       
-      print('Admin notifications sent for bulk rental request: ${request.id}');
+      print('Admin notifications sent for rental request: ${request.id}');
     } catch (e) {
       print('Error notifying admin: $e');
     }
@@ -335,9 +335,9 @@ class CartService {
         await _notifyUserOfStatusUpdate(request);
       }
 
-      print('Bulk rental request status updated successfully');
+      print('Rental request status updated successfully');
     } catch (e) {
-      print('Error updating bulk rental request status: $e');
+      print('Error updating rental request status: $e');
       throw e;
     }
   }
@@ -377,7 +377,7 @@ class CartService {
         message: message,
         data: {
           'requestId': request.id,
-          'requestType': 'bulk_rental',
+          'requestType': 'rental_request',
           'status': request.status,
           'totalItems': request.totalItems.toString(),
           'finalTotal': request.finalTotal.toString(),

@@ -60,7 +60,7 @@ class ProductService {
     }
   }
 
-  // Get products by owner (for store management)
+  // Get products by owner
   static Future<List<Product>> getProductsByOwner(String ownerId) async {
     try {
       final querySnapshot = await _firestore

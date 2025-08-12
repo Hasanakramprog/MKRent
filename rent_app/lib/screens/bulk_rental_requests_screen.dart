@@ -11,14 +11,22 @@ class BulkRentalRequestsScreen extends StatefulWidget {
   State<BulkRentalRequestsScreen> createState() => _BulkRentalRequestsScreenState();
 }
 
-class _BulkRentalRequestsScreenState extends State<BulkRentalRequestsScreen> {
-  String _selectedStatus = 'all';
+class _BulkRentalRequestsScreenState extends State<BulkRentalRequestsScreen>
+    with SingleTickerProviderStateMixin {
   bool _isAdmin = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _isAdmin = AuthService.isAdmin;
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   String _formatDate(DateTime date) {
@@ -36,63 +44,80 @@ class _BulkRentalRequestsScreenState extends State<BulkRentalRequestsScreen> {
         title: Text(_isAdmin ? 'All Rental Requests' : 'My Rental Requests'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (value) {
-              setState(() {
-                _selectedStatus = value;
-              });
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'all', child: Text('All')),
-              const PopupMenuItem(value: 'pending', child: Text('Pending')),
-              const PopupMenuItem(value: 'approved', child: Text('Approved')),
-              const PopupMenuItem(value: 'rejected', child: Text('Rejected')),
-              const PopupMenuItem(value: 'price_adjusted', child: Text('Price Adjusted')),
-            ],
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<BulkRentalRequest>>(
-        stream: CartService.getBulkRentalRequestsStream(
-          userId: _isAdmin ? null : AuthService.userId,
-          status: _selectedStatus == 'all' ? null : _selectedStatus,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: const Color(0xFFFFD700),
+          labelColor: const Color(0xFFFFD700),
+          unselectedLabelColor: Colors.grey,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: 'Pending'),
+            Tab(text: 'Approved'),
+            Tab(text: 'Price Adjusted'),
+          ],
         ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
-          }
-
-          final requests = snapshot.data ?? [];
-
-          if (requests.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: requests.length,
-            itemBuilder: (context, index) {
-              final request = requests[index];
-              return _buildRequestCard(request);
-            },
-          );
-        },
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildRequestsList('all'),
+          _buildRequestsList('pending'),
+          _buildRequestsList('approved'),
+          _buildRequestsList('price_adjusted'),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildRequestsList(String status) {
+    return StreamBuilder<List<BulkRentalRequest>>(
+      stream: CartService.getBulkRentalRequestsStream(
+        userId: _isAdmin ? null : AuthService.userId,
+        status: status == 'all' ? null : status,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        final requests = snapshot.data ?? [];
+
+        if (requests.isEmpty) {
+          return _buildEmptyState(status);
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: requests.length,
+          itemBuilder: (context, index) {
+            final request = requests[index];
+            return _buildRequestCard(request);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(String status) {
+    String title = 'No rental requests found';
+    if (status == 'pending') {
+      title = 'No pending requests found';
+    } else if (status == 'approved') {
+      title = 'No approved requests found';
+    } else if (status == 'price_adjusted') {
+      title = 'No price adjusted requests found';
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -104,9 +129,7 @@ class _BulkRentalRequestsScreenState extends State<BulkRentalRequestsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            _selectedStatus == 'all' 
-                ? 'No rental requests found'
-                : 'No ${_selectedStatus} requests found',
+            title,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,

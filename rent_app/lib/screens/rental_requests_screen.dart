@@ -12,14 +12,23 @@ class RentalRequestsScreen extends StatefulWidget {
   State<RentalRequestsScreen> createState() => _RentalRequestsScreenState();
 }
 
-class _RentalRequestsScreenState extends State<RentalRequestsScreen> {
+class _RentalRequestsScreenState extends State<RentalRequestsScreen>
+    with SingleTickerProviderStateMixin {
   List<RentalRequest> rentalRequests = [];
   bool _isLoading = true;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
     _loadRentalRequests();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadRentalRequests() async {
@@ -59,25 +68,71 @@ class _RentalRequestsScreenState extends State<RentalRequestsScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         elevation: 0,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: const Color(0xFFFFD700),
+          labelColor: const Color(0xFFFFD700),
+          unselectedLabelColor: Colors.grey,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: 'Pending'),
+            Tab(text: 'Approved'),
+            Tab(text: 'Price Adjusted'),
+          ],
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await _loadRentalRequests();
-        },
-        backgroundColor: const Color(0xFF1A1A1A),
-        color: const Color(0xFFFFD700),
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFFFFD700)),
-              )
-            : rentalRequests.isEmpty
-                ? _buildEmptyState()
-                : _buildRentalsList(),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildRequestsList('all'),
+          _buildRequestsList('pending'),
+          _buildRequestsList('approved'),
+          _buildRequestsList('price_adjusted'),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildRequestsList(String status) {
+    List<RentalRequest> filteredRequests;
+    if (status == 'all') {
+      filteredRequests = rentalRequests;
+    } else {
+      filteredRequests = rentalRequests.where((request) => request.status == status).toList();
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadRentalRequests();
+      },
+      backgroundColor: const Color(0xFF1A1A1A),
+      color: const Color(0xFFFFD700),
+      child: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFFFD700)),
+            )
+          : filteredRequests.isEmpty
+              ? _buildEmptyState(status)
+              : _buildRentalsList(filteredRequests),
+    );
+  }
+
+  Widget _buildEmptyState(String status) {
+    String title = 'No Rental Requests';
+    String subtitle = 'You haven\'t made any rental requests yet.';
+    
+    if (status == 'pending') {
+      title = 'No Pending Requests';
+      subtitle = 'You don\'t have any pending rental requests.';
+    } else if (status == 'approved') {
+      title = 'No Approved Requests';
+      subtitle = 'You don\'t have any approved rental requests yet.';
+    } else if (status == 'price_adjusted') {
+      title = 'No Price Adjusted Requests';
+      subtitle = 'You don\'t have any requests with adjusted prices.';
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -85,7 +140,7 @@ class _RentalRequestsScreenState extends State<RentalRequestsScreen> {
           Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey[600]),
           const SizedBox(height: 16),
           Text(
-            'No Rental Requests',
+            title,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -94,7 +149,7 @@ class _RentalRequestsScreenState extends State<RentalRequestsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'You haven\'t made any rental requests yet.',
+            subtitle,
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
@@ -120,12 +175,12 @@ class _RentalRequestsScreenState extends State<RentalRequestsScreen> {
     );
   }
 
-  Widget _buildRentalsList() {
+  Widget _buildRentalsList(List<RentalRequest> requests) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: rentalRequests.length,
+      itemCount: requests.length,
       itemBuilder: (context, index) {
-        final rental = rentalRequests[index];
+        final rental = requests[index];
         return FutureBuilder<Product?>(
           future: ProductService.getProductById(rental.productId),
           builder: (context, snapshot) {

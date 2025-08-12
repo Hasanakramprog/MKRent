@@ -5,7 +5,6 @@ import 'screens/app_selection_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/rental_confirmation_screen.dart';
 import 'screens/rental_requests_screen.dart';
-import 'screens/store_management_screen.dart';
 import 'screens/add_product_screen.dart';
 import 'screens/cache_management_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -115,6 +114,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       home: const AppSelectionScreen(),
       onGenerateRoute: (settings) {
         switch (settings.name) {
+          case '/guest-home':
+            return MaterialPageRoute(
+              builder: (context) => const HomeScreen(isGuestMode: true),
+            );
           case '/cart':
             return MaterialPageRoute(
               builder: (context) => const CartScreen(),
@@ -134,10 +137,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           case '/rental-requests':
             return MaterialPageRoute(
               builder: (context) => const RentalRequestsScreen(),
-            );
-          case '/store-management':
-            return MaterialPageRoute(
-              builder: (context) => const StoreManagementScreen(),
             );
           case '/add-product':
             final product = settings.arguments as Product?;

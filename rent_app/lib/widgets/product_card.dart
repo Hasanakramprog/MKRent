@@ -4,12 +4,54 @@ import 'asset_image_widget.dart';
 import '../models/product.dart';
 import '../screens/product_detail_screen.dart';
 import '../services/cart_service.dart';
+import '../services/auth_service.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final Product product;
   final VoidCallback? onProductUpdated;
 
   const ProductCard({super.key, required this.product, this.onProductUpdated});
+
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> 
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Only animate if product is available
+    if (widget.product.isAvailable) {
+      _animationController = AnimationController(
+        duration: const Duration(seconds: 2),
+        vsync: this,
+      );
+      
+      _pulseAnimation = Tween<double>(
+        begin: 0.3,
+        end: 1.0,
+      ).animate(CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ));
+      
+      // Start repeating animation
+      _animationController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.product.isAvailable) {
+      _animationController.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,14 +60,14 @@ class ProductCard extends StatelessWidget {
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(product: product),
+            builder: (context) => ProductDetailScreen(product: widget.product),
           ),
         );
         
         // If product was updated or deleted, refresh the parent
-        if (result == true && onProductUpdated != null) {
+        if (result == true && widget.onProductUpdated != null) {
           print('ProductCard: Product was updated/deleted, calling refresh callback');
-          onProductUpdated!();
+          widget.onProductUpdated!();
         } else {
           print('ProductCard: Navigation result: $result');
         }
@@ -57,7 +99,7 @@ class ProductCard extends StatelessWidget {
                   children: [
                     // Main Product Image
                     CachedImageWidget(
-                      imageUrl: product.imageUrl,
+                      imageUrl: widget.product.imageUrl,
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,
@@ -104,7 +146,7 @@ class ProductCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          product.category,
+                          widget.product.category,
                           style: const TextStyle(
                             color: Colors.black,
                             fontSize: 10,
@@ -128,7 +170,7 @@ class ProductCard extends StatelessWidget {
                   children: [
                     // Product Name
                     Text(
-                      product.name,
+                      widget.product.name,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -141,7 +183,7 @@ class ProductCard extends StatelessWidget {
                     // Product Description
                     Flexible(
                       child: Text(
-                        product.description,
+                        widget.product.description,
                         style: TextStyle(
                           fontSize: 10,
                           color: Colors.grey[400],
@@ -157,7 +199,7 @@ class ProductCard extends StatelessWidget {
                         const Icon(Icons.star, color: Colors.amber, size: 12),
                         const SizedBox(width: 2),
                         Text(
-                          product.rating.toStringAsFixed(1),
+                          widget.product.rating.toStringAsFixed(1),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
@@ -166,7 +208,7 @@ class ProductCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         Text(
-                          '\$${product.price.toInt()}',
+                          '\$${widget.product.price.toInt()}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -186,26 +228,63 @@ class ProductCard extends StatelessWidget {
                     // Availability Status and Actions
                     Row(
                       children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: product.isAvailable ? Colors.green : Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                        // Animated availability indicator
+                        widget.product.isAvailable
+                            ? AnimatedBuilder(
+                                animation: _pulseAnimation,
+                                builder: (context, child) {
+                                  return Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(_pulseAnimation.value),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green.withOpacity(_pulseAnimation.value * 0.5),
+                                          blurRadius: 3,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                         const SizedBox(width: 4),
-                        Text(
-                          product.isAvailable ? 'Available' : 'Rented',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: product.isAvailable ? Colors.green : Colors.red,
-                          ),
-                        ),
+                        // Animated text for available status
+                        widget.product.isAvailable
+                            ? AnimatedBuilder(
+                                animation: _pulseAnimation,
+                                builder: (context, child) {
+                                  return Text(
+                                    'Available',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.green.withOpacity(_pulseAnimation.value),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Text(
+                                'Rented',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.red,
+                                ),
+                              ),
                         const Spacer(),
-                        // Add to Cart Button
-                        if (product.isAvailable) ...[
+                        // Add to Cart Button (only for customers, not admins)
+                        if (widget.product.isAvailable && !AuthService.isAdmin) ...[
                           InkWell(
                             onTap: () => _showAddToCartDialog(context),
                             child: Container(
@@ -227,6 +306,36 @@ class ProductCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                         ],
+                        // Edit Button (only for admins)
+                        if (AuthService.isAdmin) ...[
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductDetailScreen(product: widget.product),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: Colors.blue,
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
                         // View Button
                         SizedBox(
                           height: 24,
@@ -235,7 +344,7 @@ class ProductCard extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ProductDetailScreen(product: product),
+                                  builder: (context) => ProductDetailScreen(product: widget.product),
                                 ),
                               );
                             },
@@ -270,6 +379,130 @@ class ProductCard extends StatelessWidget {
   }
 
   void _showAddToCartDialog(BuildContext context) {
+    // Check if user is authenticated
+    if (!AuthService.isLoggedIn) {
+      _showGuestSignInDialog(context);
+      return;
+    }
+    
+    // User is authenticated, show add to cart dialog
+    _showAuthenticatedAddToCartDialog(context);
+  }
+
+  void _showGuestSignInDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.login,
+              color: const Color(0xFFFFD700),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Sign In Required',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'To rent products and add them to your cart, you need to sign in with your phone number.',
+              style: TextStyle(
+                color: Colors.grey[300],
+                fontSize: 16,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFFFD700).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.security,
+                    color: const Color(0xFFFFD700),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Safe & secure phone verification',
+                      style: TextStyle(
+                        color: Colors.grey[300],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Continue Browsing',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 16,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/welcome');
+            },
+            icon: const Icon(
+              Icons.phone_android,
+              color: Colors.black,
+              size: 20,
+            ),
+            label: const Text(
+              'Sign In',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFD700),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAuthenticatedAddToCartDialog(BuildContext context) {
     DateTime startDate = DateTime.now();
     DateTime endDate = DateTime.now().add(const Duration(days: 1));
     int quantity = 1;
@@ -296,7 +529,7 @@ class ProductCard extends StatelessWidget {
                       width: 60,
                       height: 60,
                       child: CachedImageWidget(
-                        imageUrl: product.imageUrl,
+                        imageUrl: widget.product.imageUrl,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -307,7 +540,7 @@ class ProductCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product.name,
+                          widget.product.name,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -315,7 +548,7 @@ class ProductCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '\$${product.price.toStringAsFixed(2)}/day',
+                          '\$${widget.product.price.toStringAsFixed(2)}/day',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFFFFD700),
@@ -483,7 +716,7 @@ class ProductCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '\$${((endDate.difference(startDate).inDays + 1) * quantity * product.price).toStringAsFixed(2)}',
+                          '\$${((endDate.difference(startDate).inDays + 1) * quantity * widget.product.price).toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Color(0xFFFFD700),
                             fontWeight: FontWeight.bold,
@@ -532,10 +765,10 @@ class ProductCard extends StatelessWidget {
   }) async {
     try {
       await CartService.addToCart(
-        productId: product.id,
-        productName: product.name,
-        productImageUrl: product.imageUrl,
-        dailyRate: product.price,
+        productId: widget.product.id,
+        productName: widget.product.name,
+        productImageUrl: widget.product.imageUrl,
+        dailyRate: widget.product.price,
         quantity: quantity,
         startDate: startDate,
         endDate: endDate,
