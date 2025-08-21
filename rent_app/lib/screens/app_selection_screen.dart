@@ -9,113 +9,163 @@ class AppSelectionScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - 
-                         MediaQuery.of(context).padding.top - 40,
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                
-                // Logo Section
-                Container(
-                  height: 100,
-                  width: 100,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFFFD700).withOpacity(0.3),
-                      width: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                children: [
+                  const SizedBox(height: 5),
+                  
+                  // Logo Section
+                  Container(
+                    height: 70,
+                    width: 70,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFFD700).withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.asset(
+                        'assets/logos/MKPro.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.business,
+                            color: Color(0xFFFFD700),
+                            size: 40,
+                          );
+                        },
+                      ),
                     ),
                   ),
-                  child: const Icon(
-                    Icons.business,
-                    color: Color(0xFFFFD700),
-                    size: 50,
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Title
-                const Text(
-                  'MKPro Business',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 8),
-                
-                // Subtitle
-                Text(
-                  'Choose your business model',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[400],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // App Options
-                Column(
-                  children: [
-                    // Rent App Option
-                    _buildAppOption(
-                      context: context,
-                      title: AuthService.isLoggedIn 
-                          ? 'Rent App (${AuthService.currentUser?.name ?? 'Signed In'})'
-                          : 'Rent App',
-                      subtitle: 'Camera & Equipment Rental',
-                      description: AuthService.isLoggedIn 
-                          ? 'Welcome back! Continue renting equipment'
-                          : 'Rent out cameras, lenses, and equipment to customers',
-                      icon: Icons.camera_alt,
-                      color: const Color(0xFFFFD700),
-                      isAvailable: true,
-                      onTap: () => _handleRentAppSelection(context),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Title
+                  const Text(
+                    'MKPro Apps',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Buy App Option
-                    _buildAppOption(
-                      context: context,
-                      title: 'Buy App',
-                      subtitle: 'Camera & Equipment Store',
-                      description: 'Buy cameras, lenses, and equipment directly from store',
-                      icon: Icons.shopping_cart,
-                      color: const Color(0xFF4CAF50),
-                      isAvailable: false,
-                      onTap: () => _showComingSoon(context),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 30),
-                
-                // Footer
-                Text(
-                  'You can switch between apps anytime',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 20),
-              ],
-            ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Subtitle
+                  Text(
+                    'Select Your Service',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[400],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              
+              // App Options
+              Column(
+                children: [
+                  // Buy App Option (First)
+                  _buildAppOption(
+                    context: context,
+                    title: 'Buy Equipment',
+                    subtitle: 'Professional Camera Store',
+                    description: 'Purchase new & certified cameras, lenses, and equipment with warranty',
+                    icon: Icons.shopping_cart,
+                    color: const Color(0xFF4CAF50),
+                    isAvailable: false,
+                    onTap: () => _showComingSoon(
+                      context, 
+                      'Buy Equipment', 
+                      'Professional Camera Store',
+                      'Soon you\'ll be able to purchase cameras, lenses, and equipment directly from our store with full warranty and support!'
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 10),
+                  
+                  // Rent App Option (Second)
+                  _buildAppOption(
+                    context: context,
+                    title: AuthService.isLoggedIn 
+                        ? 'Rent Equipment (${AuthService.currentUser?.name ?? 'Signed In'})'
+                        : 'Rent Equipment',
+                    subtitle: 'Professional Rental Service',
+                    description: AuthService.isLoggedIn 
+                        ? 'Welcome back! Continue renting professional equipment'
+                        : 'Rent cameras, lenses, and equipment for your projects and events',
+                    icon: Icons.camera_alt,
+                    color: const Color(0xFFFFD700),
+                    isAvailable: true,
+                    onTap: () => _handleRentAppSelection(context),
+                  ),
+                  
+                  const SizedBox(height: 10),
+                  
+                  // Marketplace Option (Third - OLX Style)
+                  _buildAppOption(
+                    context: context,
+                    title: 'Camera Marketplace',
+                    subtitle: 'Buy & Sell Community',
+                    description: 'Connect with photographers to buy and sell used equipment safely',
+                    icon: Icons.storefront,
+                    color: const Color(0xFF9C27B0),
+                    isAvailable: false,
+                    onTap: () => _showComingSoon(
+                      context,
+                      'Camera Marketplace',
+                      'Buy & Sell Community',
+                      'Coming soon! A secure marketplace where photographers can buy and sell used equipment, connect with the community, and find great deals on pre-owned gear!'
+                    ),
+                  ),
+                ],
+              ),
+              
+              // Footer
+              Column(
+                children: [
+                  Text(
+                    'You can switch between services anytime',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.verified,
+                        color: const Color(0xFFFFD700),
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'All services are secure and verified',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -136,7 +186,7 @@ class AppSelectionScreen extends StatelessWidget {
       onTap: isAvailable ? onTap : null,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: isAvailable 
               ? const Color(0xFF1A1A1A) 
@@ -160,50 +210,52 @@ class AppSelectionScreen extends StatelessWidget {
           children: [
             // Icon
             Container(
-              width: 60,
-              height: 60,
+              width: 45,
+              height: 45,
               decoration: BoxDecoration(
                 color: isAvailable ? color : Colors.grey,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
                 color: Colors.white,
-                size: 30,
+                size: 22,
               ),
             ),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             
             // Title
             Text(
               title,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: isAvailable ? Colors.white : Colors.grey,
               ),
+              textAlign: TextAlign.center,
             ),
             
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             
             // Subtitle
             Text(
               subtitle,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isAvailable ? color : Colors.grey,
               ),
+              textAlign: TextAlign.center,
             ),
             
-            const SizedBox(height: 6),
+            const SizedBox(height: 3),
             
             // Description
             Text(
               description,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: isAvailable ? Colors.grey[400] : Colors.grey[600],
               ),
               textAlign: TextAlign.center,
@@ -212,7 +264,7 @@ class AppSelectionScreen extends StatelessWidget {
             ),
             
             if (!isAvailable) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
@@ -414,24 +466,93 @@ class AppSelectionScreen extends StatelessWidget {
     }
   }
 
-  void _showComingSoon(BuildContext context) {
+  void _showComingSoon(BuildContext context, [String? title, String? subtitle, String? message]) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text(
-          'Coming Soon',
-          style: TextStyle(color: Colors.white),
+        title: Row(
+          children: [
+            Icon(
+              Icons.access_time,
+              color: Colors.orange,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title ?? 'Coming Soon',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-        content: const Text(
-          'The Buy App is currently under development. Soon you\'ll be able to purchase cameras, lenses, and equipment directly from our store!',
-          style: TextStyle(color: Colors.grey),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (subtitle != null) ...[
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFFFFD700),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            Text(
+              message ?? 'This feature is currently under development. Stay tuned for updates!',
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.orange.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.notifications_active,
+                    color: Colors.orange,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'We\'ll notify you when this feature launches!',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text(
-              'OK',
+              'Got it!',
               style: TextStyle(color: Color(0xFFFFD700)),
             ),
           ),
