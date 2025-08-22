@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/app_selection_screen.dart';
+import 'screens/google_signin_screen.dart';
+import 'screens/phone_number_collection_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/rental_confirmation_screen.dart';
 import 'screens/rental_requests_screen.dart';
@@ -15,7 +17,7 @@ import 'screens/cart_screen.dart';
 import 'screens/bulk_rental_requests_screen.dart';
 import 'models/rental.dart';
 import 'models/product.dart';
-import 'services/auth_service.dart';
+import 'services/google_auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/category_service.dart';
 
@@ -30,10 +32,10 @@ void main() async {
     );
     print('Firebase initialized successfully');
 
-    // Initialize Auth Service
-    print('Initializing Auth Service...');
-    await AuthService.initialize();
-    print('Auth Service initialized successfully');
+    // Initialize Google Auth Service
+    print('Initializing Google Auth Service...');
+    await GoogleAuthService.initialize();
+    print('Google Auth Service initialized successfully');
 
     // Initialize Notification Service
     print('Initializing Notification Service...');
@@ -111,7 +113,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           foregroundColor: Colors.white, // White text
         ),
       ),
-      home: const AppSelectionScreen(),
+      home: const AuthWrapper(),
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/guest-home':
@@ -178,6 +180,51 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             );
           default:
             return null;
+        }
+      },
+    );
+  }
+}
+
+// AuthWrapper to handle authentication state
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: GoogleAuthService.authStateChanges,
+      builder: (context, snapshot) {
+        // Show loading while checking auth state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
+              ),
+            ),
+          );
+        }
+
+        // Check if user is signed in
+        if (snapshot.hasData && snapshot.data != null) {
+          // User is signed in, check if we have user data and phone number
+          if (GoogleAuthService.isLoggedIn) {
+            if (GoogleAuthService.needsPhoneNumber) {
+              // User needs to provide phone number
+              return PhoneNumberCollectionScreen(googleUser: GoogleAuthService.currentUser!);
+            } else {
+              // User has complete profile, go to app selection
+              return const AppSelectionScreen();
+            }
+          } else {
+            // Firebase user exists but we don't have user data
+            return const GoogleSignInScreen();
+          }
+        } else {
+          // User is not signed in
+          return const GoogleSignInScreen();
         }
       },
     );

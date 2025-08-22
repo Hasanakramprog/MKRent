@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'phone_input_screen.dart';
+import 'google_signin_screen.dart';
 import '../widgets/asset_image_widget.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -89,7 +89,7 @@ class WelcomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const PhoneInputScreen(),
+                        builder: (context) => const GoogleSignInScreen(),
                       ),
                     );
                   },

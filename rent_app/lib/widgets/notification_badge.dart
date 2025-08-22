@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 
 class NotificationBadge extends StatelessWidget {
   final Widget child;
@@ -16,12 +16,12 @@ class NotificationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (AuthService.userId == null) {
+    if (GoogleAuthService.userId == null) {
       return child;
     }
 
     return StreamBuilder<int>(
-      stream: NotificationService.getUnreadCount(AuthService.userId!),
+      stream: NotificationService.getUnreadCount(GoogleAuthService.userId!),
       builder: (context, snapshot) {
         final count = snapshot.data ?? 0;
         

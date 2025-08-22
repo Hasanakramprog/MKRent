@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/cart.dart';
 import '../models/notification.dart';
-import 'auth_service.dart';
+import 'google_auth_service.dart';
 import 'notification_service.dart';
 
 class CartService {
@@ -20,7 +20,7 @@ class CartService {
     required DateTime endDate,
   }) async {
     try {
-      final userId = AuthService.currentUser?.id;
+      final userId = GoogleAuthService.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
 
       final totalDays = endDate.difference(startDate).inDays + 1;
@@ -87,7 +87,7 @@ class CartService {
 
   static Future<void> removeFromCart(String productId, DateTime startDate, DateTime endDate) async {
     try {
-      final userId = AuthService.currentUser?.id;
+      final userId = GoogleAuthService.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
 
       final currentCart = await getCart();
@@ -129,7 +129,7 @@ class CartService {
     required int newQuantity,
   }) async {
     try {
-      final userId = AuthService.currentUser?.id;
+      final userId = GoogleAuthService.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
 
       final currentCart = await getCart();
@@ -171,7 +171,7 @@ class CartService {
 
   static Future<Cart?> getCart() async {
     try {
-      final userId = AuthService.currentUser?.id;
+      final userId = GoogleAuthService.currentUser?.id;
       if (userId == null) return null;
 
       final doc = await _firestore.collection(_cartCollection).doc(userId).get();
@@ -185,7 +185,7 @@ class CartService {
   }
 
   static Stream<Cart?> getCartStream() {
-    final userId = AuthService.currentUser?.id;
+    final userId = GoogleAuthService.currentUser?.id;
     if (userId == null) return Stream.value(null);
 
     return _firestore
@@ -200,7 +200,7 @@ class CartService {
 
   static Future<void> clearCart() async {
     try {
-      final userId = AuthService.currentUser?.id;
+      final userId = GoogleAuthService.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
 
       await _firestore.collection(_cartCollection).doc(userId).delete();
@@ -214,10 +214,10 @@ class CartService {
   // Rental Request Management
   static Future<String> submitBulkRentalRequest() async {
     try {
-      final userId = AuthService.currentUser?.id;
+      final userId = GoogleAuthService.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
 
-      final user = AuthService.currentUser;
+      final user = GoogleAuthService.currentUser;
       if (user == null) throw Exception('User data not found');
 
       final cart = await getCart();
@@ -231,7 +231,7 @@ class CartService {
         id: requestId,
         userId: userId,
         userName: user.name,
-        userPhone: user.phone,
+        userPhone: user.phone ?? '', // Handle optional phone
         items: cart.items,
         originalTotal: cart.totalAmount,
         status: 'pending',
@@ -307,7 +307,7 @@ class CartService {
     String? adminNotes,
   }) async {
     try {
-      final adminId = AuthService.currentUser?.id;
+      final adminId = GoogleAuthService.currentUser?.id;
       if (adminId == null) throw Exception('Admin not authenticated');
 
       final updateData = {
@@ -429,7 +429,7 @@ class CartService {
 
   static Future<List<BulkRentalRequest>> getUserBulkRentalRequests() async {
     try {
-      final userId = AuthService.currentUser?.id;
+      final userId = GoogleAuthService.currentUser?.id;
       if (userId == null) return [];
 
       final querySnapshot = await _firestore

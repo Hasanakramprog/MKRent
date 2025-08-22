@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/cart.dart';
 import '../services/cart_service.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 import '../widgets/cached_image_widget.dart';
 
 class BulkRentalRequestsScreen extends StatefulWidget {
@@ -19,7 +19,7 @@ class _BulkRentalRequestsScreenState extends State<BulkRentalRequestsScreen>
   @override
   void initState() {
     super.initState();
-    _isAdmin = AuthService.isAdmin;
+    _isAdmin = GoogleAuthService.isAdmin;
     _tabController = TabController(length: 4, vsync: this);
   }
 
@@ -73,7 +73,7 @@ class _BulkRentalRequestsScreenState extends State<BulkRentalRequestsScreen>
   Widget _buildRequestsList(String status) {
     return StreamBuilder<List<BulkRentalRequest>>(
       stream: CartService.getBulkRentalRequestsStream(
-        userId: _isAdmin ? null : AuthService.userId,
+        userId: _isAdmin ? null : GoogleAuthService.userId,
         status: status == 'all' ? null : status,
       ),
       builder: (context, snapshot) {

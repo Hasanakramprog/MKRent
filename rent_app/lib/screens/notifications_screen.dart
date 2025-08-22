@@ -3,7 +3,7 @@ import '../models/notification.dart';
 import '../models/rental.dart';
 import '../models/product.dart';
 import '../services/notification_service.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 import '../services/rental_service.dart';
 import '../services/product_service.dart';
 
@@ -19,14 +19,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     // Mark all notifications as read when screen is opened
-    if (AuthService.userId != null) {
-      NotificationService.markAllAsRead(AuthService.userId!);
+    if (GoogleAuthService.userId != null) {
+      NotificationService.markAllAsRead(GoogleAuthService.userId!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (AuthService.userId == null) {
+    if (GoogleAuthService.userId == null) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Notifications'),
@@ -48,7 +48,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           IconButton(
             icon: const Icon(Icons.mark_email_read),
             onPressed: () async {
-              await NotificationService.markAllAsRead(AuthService.userId!);
+              await NotificationService.markAllAsRead(GoogleAuthService.userId!);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -63,7 +63,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       body: StreamBuilder<List<AppNotification>>(
-        stream: NotificationService.getUserNotifications(AuthService.userId!),
+        stream: NotificationService.getUserNotifications(GoogleAuthService.userId!),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -333,7 +333,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       );
 
       // Fetch rental and product data
-      final rentals = await RentalService.getUserRentals(AuthService.userId!);
+      final rentals = await RentalService.getUserRentals(GoogleAuthService.userId!);
       final rental = rentals.firstWhere((r) => r.id == rentalId);
       
       Product? product;

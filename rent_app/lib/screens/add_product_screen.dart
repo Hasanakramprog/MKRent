@@ -4,7 +4,7 @@ import 'dart:io';
 import '../models/product.dart';
 import '../models/category.dart';
 import '../services/product_service.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 import '../services/storage_test_service.dart';
 import '../services/category_service.dart';
 
@@ -193,7 +193,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     });
 
     try {
-      final currentUser = AuthService.currentUser;
+      final currentUser = GoogleAuthService.currentUser;
       if (currentUser == null) {
         _showErrorSnackBar('User not authenticated');
         return;

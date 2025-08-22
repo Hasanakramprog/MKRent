@@ -5,24 +5,26 @@ enum UserRole { customer, admin }
 class AppUser {
   final String id;
   final String name;
-  final String phone;
+  final String? phone;
   final UserRole role;
-  final String? email;
+  final String email;
   final String? storeId;
   final String? storeName;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final String? photoUrl;
 
   AppUser({
     required this.id,
     required this.name,
-    required this.phone,
+    this.phone,
     required this.role,
-    this.email,
+    required this.email,
     this.storeId,
     this.storeName,
     required this.createdAt,
     this.updatedAt,
+    this.photoUrl,
   });
 
   bool get isAdmin => role == UserRole.admin;
@@ -40,6 +42,7 @@ class AppUser {
       'storeName': storeName,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'photoUrl': photoUrl,
     };
   }
 
@@ -48,18 +51,19 @@ class AppUser {
     return AppUser(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
-      phone: map['phone'] ?? '',
+      phone: map['phone'],
       role: UserRole.values.firstWhere(
         (role) => role.toString().split('.').last == map['role'],
         orElse: () => UserRole.customer,
       ),
-      email: map['email'],
+      email: map['email'] ?? '',
       storeId: map['storeId'],
       storeName: map['storeName'],
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: map['updatedAt'] != null
           ? (map['updatedAt'] as Timestamp).toDate()
           : null,
+      photoUrl: map['photoUrl'],
     );
   }
 

@@ -4,7 +4,7 @@ import 'asset_image_widget.dart';
 import '../models/product.dart';
 import '../screens/product_detail_screen.dart';
 import '../services/cart_service.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -284,7 +284,7 @@ class _ProductCardState extends State<ProductCard>
                               ),
                         const Spacer(),
                         // Add to Cart Button (only for customers, not admins)
-                        if (widget.product.isAvailable && !AuthService.isAdmin) ...[
+                        if (widget.product.isAvailable && !GoogleAuthService.isAdmin) ...[
                           InkWell(
                             onTap: () => _showAddToCartDialog(context),
                             child: Container(
@@ -307,7 +307,7 @@ class _ProductCardState extends State<ProductCard>
                           const SizedBox(width: 6),
                         ],
                         // Edit Button (only for admins)
-                        if (AuthService.isAdmin) ...[
+                        if (GoogleAuthService.isAdmin) ...[
                           InkWell(
                             onTap: () {
                               Navigator.push(
@@ -380,7 +380,7 @@ class _ProductCardState extends State<ProductCard>
 
   void _showAddToCartDialog(BuildContext context) {
     // Check if user is authenticated
-    if (!AuthService.isLoggedIn) {
+    if (!GoogleAuthService.isLoggedIn) {
       _showGuestSignInDialog(context);
       return;
     }

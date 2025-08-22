@@ -3,7 +3,7 @@ import '../models/product.dart';
 import '../services/cart_service.dart';
 import '../widgets/cached_image_widget.dart';
 import '../widgets/asset_image_widget.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 import '../services/product_service.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -355,7 +355,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(height: 32),
                     ],
                     // Admin Actions (Edit & Delete) or Customer Rent Button
-                    if (AuthService.isAdmin) ...[
+                    if (GoogleAuthService.isAdmin) ...[
                       // Edit Product Button
                       SizedBox(
                         width: double.infinity,
@@ -466,7 +466,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _handleAddToCart() {
     // Check if user is authenticated
-    if (!AuthService.isLoggedIn) {
+    if (!GoogleAuthService.isLoggedIn) {
       _showGuestSignInDialog();
       return;
     }

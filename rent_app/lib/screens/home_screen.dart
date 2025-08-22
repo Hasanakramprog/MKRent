@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/product.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 import '../services/product_service.dart';
 import '../services/cart_service.dart';
 import '../widgets/product_card.dart';
@@ -10,6 +10,7 @@ import '../widgets/search_bar_widget.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/notification_badge.dart';
 import '../widgets/brand_slider.dart';
+import 'google_signin_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isGuestMode;
@@ -361,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 Transform.scale(
                   scale: 0.8 + (0.2 * _fabAnimation.value),
                   child: FloatingActionButton(
-                    heroTag: "home_${heroTag}_${AuthService.isAdmin ? 'admin' : 'customer'}",
+                    heroTag: "home_${heroTag}_${GoogleAuthService.isAdmin ? 'admin' : 'customer'}",
                     onPressed: _isFabExpanded ? onPressed : null,
                     backgroundColor: backgroundColor,
                     foregroundColor: foregroundColor,
@@ -414,14 +415,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               );
               
               try {
-                await AuthService.signOut();
+                await GoogleAuthService.signOut();
                 
                 // Check if widget is still mounted before navigation
                 if (!mounted) return;
                 
-                // Navigate to welcome screen and clear all previous routes
-                navigator.pushNamedAndRemoveUntil(
-                  '/welcome', 
+                // Navigate to Google Sign-In screen and clear all previous routes
+                navigator.pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const GoogleSignInScreen(),
+                  ),
                   (route) => false,
                 );
               } catch (e) {
@@ -720,7 +723,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                AuthService.currentUser?.name ?? 'User',
+                                GoogleAuthService.currentUser?.name ?? 'User',
                                 style: const TextStyle(color: Colors.white),
                               ),
                             ],
@@ -731,14 +734,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           child: Row(
                             children: [
                               Icon(
-                                AuthService.isAdmin
+                                GoogleAuthService.isAdmin
                                     ? Icons.business
                                     : Icons.person,
                                 color: Colors.grey,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                AuthService.isAdmin
+                                GoogleAuthService.isAdmin
                                     ? 'Store Owner'
                                     : 'Customer',
                                 style: const TextStyle(color: Colors.grey),
@@ -748,7 +751,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         ),
                         const PopupMenuDivider(),
                         // Show Category Management only for admin users
-                        if (AuthService.isAdmin)
+                        if (GoogleAuthService.isAdmin)
                           const PopupMenuItem(
                             value: 'categories',
                             child: Row(
@@ -762,7 +765,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                               ],
                             ),
                           ),
-                        if (AuthService.isAdmin) const PopupMenuDivider(),
+                        if (GoogleAuthService.isAdmin) const PopupMenuDivider(),
                         const PopupMenuItem(
                           value: 'logout',
                           child: Row(
@@ -984,7 +987,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // Show Admin options only for admin users
-          if (AuthService.isAdmin) ...[
+          if (GoogleAuthService.isAdmin) ...[
             _buildAnimatedFab(
               heroTag: "add_product",
               onPressed: () async {
@@ -1016,7 +1019,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             const SizedBox(height: 16),
           ],
           // Show My Requests only for customer users (not admin)
-          if (!AuthService.isAdmin) ...[
+          if (!GoogleAuthService.isAdmin) ...[
             _buildAnimatedFab(
               heroTag: "my_requests",
               onPressed: () {
@@ -1032,7 +1035,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           ],
           // Main toggle FAB
           FloatingActionButton(
-            heroTag: "home_main_toggle_${AuthService.isAdmin ? 'admin' : 'customer'}",
+            heroTag: "home_main_toggle_${GoogleAuthService.isAdmin ? 'admin' : 'customer'}",
             onPressed: _toggleFabLabels,
             backgroundColor: const Color(0xFFFFD700),
             foregroundColor: Colors.black,

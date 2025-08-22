@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification.dart';
 import '../models/rental.dart';
 import '../models/product.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 
 // Background message handler - must be top-level function
 @pragma('vm:entry-point')
@@ -22,10 +23,50 @@ class NotificationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  
+  // Track sent notifications to prevent duplicates
+  static final Set<String> _sentNotificationIds = <String>{};
+  static const int _deduplicationWindowMinutes = 5; // 5 minute window for deduplication
 
-  // Initialize notification service
+  // Generate unique notification ID for deduplication
+  static String _generateNotificationId({
+    required String toUserId,
+    required NotificationType type,
+    required String title,
+    required String message,
+    Map<String, dynamic>? data,
+  }) {
+    // Create a unique ID based on content and recipient
+    final contentHash = '$toUserId:${type.toString()}:$title:$message:${data?.toString() ?? ''}';
+    return contentHash.hashCode.toString();
+  }
+
+  // Check if notification was recently sent (deduplication)
+  static bool _isRecentlySent(String notificationId) {
+    return _sentNotificationIds.contains(notificationId);
+  }
+
+  // Mark notification as sent with expiration
+  static void _markAsSent(String notificationId) {
+    _sentNotificationIds.add(notificationId);
+    
+    // Clean up old notification IDs after the deduplication window
+    Timer(Duration(minutes: _deduplicationWindowMinutes), () {
+      _sentNotificationIds.remove(notificationId);
+    });
+  }
   static Future<void> initialize() async {
     try {
+      print('Initializing NotificationService...');
+      
+      // Check if Firebase Messaging is available (Google Play Services check)
+      bool isSupported = await _messaging.isSupported();
+      if (!isSupported) {
+        print('Firebase Messaging is not supported on this device');
+        return;
+      }
+      print('Firebase Messaging is supported');
+      
       // Initialize local notifications
       await _initializeLocalNotifications();
       
@@ -45,12 +86,47 @@ class NotificationService {
 
       print('Notification permission status: ${settings.authorizationStatus}');
 
-      // Get FCM token for this device
-      final token = await _messaging.getToken();
-      print('FCM Token: $token');
+      // Check if permission was granted
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        print('Notification permissions granted');
+      } else {
+        print('Notification permissions denied: ${settings.authorizationStatus}');
+      }
+
+      // Get FCM token for this device - with retry mechanism for real devices
+      String? token;
+      int retryCount = 0;
+      const maxRetries = 3;
+      
+      while (token == null && retryCount < maxRetries) {
+        try {
+          token = await _messaging.getToken();
+          if (token != null) {
+            print('FCM Token obtained: $token');
+            break;
+          } else {
+            retryCount++;
+            print('FCM Token is null, retrying... ($retryCount/$maxRetries)');
+            if (retryCount < maxRetries) {
+              await Future.delayed(Duration(seconds: retryCount * 2)); // Progressive delay
+            }
+          }
+        } catch (e) {
+          retryCount++;
+          print('Error getting FCM token (attempt $retryCount): $e');
+          if (retryCount < maxRetries) {
+            await Future.delayed(Duration(seconds: retryCount * 2));
+          }
+        }
+      }
+
+      if (token == null) {
+        print('Failed to obtain FCM token after $maxRetries attempts');
+      }
 
       // Save token to user document if logged in
-      if (AuthService.isLoggedIn && token != null) {
+      if (GoogleAuthService.isLoggedIn && token != null) {
         await _saveFCMToken(token);
       }
 
@@ -59,7 +135,7 @@ class NotificationService {
         print('FCM Token refreshed: $newToken');
         // Always save the new token regardless of current auth state
         // because the token refresh might happen when user is logged in later
-        if (AuthService.isLoggedIn) {
+        if (GoogleAuthService.isLoggedIn) {
           await _saveFCMToken(newToken);
         } else {
           // Store token temporarily for when user logs in
@@ -86,39 +162,140 @@ class NotificationService {
     }
   }
 
+  // Manually refresh FCM token - useful for real devices
+  static Future<String?> refreshFCMToken() async {
+    try {
+      print('Manually refreshing FCM token...');
+      
+      // Check if messaging is supported
+      bool isSupported = await _messaging.isSupported();
+      if (!isSupported) {
+        print('Firebase Messaging not supported');
+        return null;
+      }
+      
+      // Delete current token to force refresh
+      await _messaging.deleteToken();
+      print('Deleted current FCM token');
+      
+      // Wait a moment for cleanup
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Get new token
+      String? newToken = await _messaging.getToken();
+      if (newToken != null) {
+        print('New FCM token generated: $newToken');
+        
+        // Save if user is logged in
+        if (GoogleAuthService.isLoggedIn) {
+          await _saveFCMToken(newToken);
+        } else {
+          await _storeTemporaryToken(newToken);
+        }
+        
+        return newToken;
+      } else {
+        print('Failed to generate new FCM token');
+        return null;
+      }
+    } catch (e) {
+      print('Error refreshing FCM token: $e');
+      return null;
+    }
+  }
+
+  // Check and refresh token for long-term logged-in users
+  static Future<void> validateTokenForLongTermUser() async {
+    try {
+      if (!GoogleAuthService.isLoggedIn) return;
+      
+      print('Validating FCM token for long-term user...');
+      
+      // Check if messaging is supported
+      bool isSupported = await _messaging.isSupported();
+      if (!isSupported) {
+        print('Firebase Messaging not supported');
+        return;
+      }
+      
+      // Get user document to check token age
+      final userDoc = await _firestore.collection('users').doc(GoogleAuthService.userId).get();
+      if (!userDoc.exists) return;
+      
+      final data = userDoc.data();
+      final tokenUpdatedAt = data?['tokenUpdatedAt'] as Timestamp?;
+      final currentToken = data?['fcmToken'] as String?;
+      
+      if (tokenUpdatedAt != null) {
+        final daysSinceUpdate = DateTime.now().difference(tokenUpdatedAt.toDate()).inDays;
+        print('FCM token was last updated $daysSinceUpdate days ago');
+        
+        // Refresh token if it's older than 7 days
+        if (daysSinceUpdate >= 7) {
+          print('Token is stale (${daysSinceUpdate} days), refreshing...');
+          await refreshFCMToken();
+        } else if (daysSinceUpdate >= 3) {
+          // For tokens 3-6 days old, verify they still work
+          print('Token is aging (${daysSinceUpdate} days), verifying...');
+          final freshToken = await _messaging.getToken();
+          if (freshToken != null && freshToken != currentToken) {
+            print('Token has changed, updating...');
+            await _saveFCMToken(freshToken);
+          }
+        }
+      } else {
+        // No timestamp, likely old user - refresh token
+        print('No token timestamp found, refreshing for safety...');
+        await refreshFCMToken();
+      }
+    } catch (e) {
+      print('Error validating token for long-term user: $e');
+    }
+  }
+
   // Save FCM token to user document
   static Future<void> _saveFCMToken(String token) async {
     try {
-      if (AuthService.userId != null) {
+      if (GoogleAuthService.userId != null) {
+        print('Saving FCM token for user: ${GoogleAuthService.userId}');
+        
+        // First try to update
         await _firestore
             .collection('users')
-            .doc(AuthService.userId)
+            .doc(GoogleAuthService.userId)
             .update({
           'fcmToken': token,
           'tokenUpdatedAt': FieldValue.serverTimestamp(),
           'lastActiveAt': FieldValue.serverTimestamp(),
+          'fcmTokenActive': true, // Mark as active
         });
-        print('FCM token saved for user: ${AuthService.userId}');
+        
+        print('FCM token saved successfully for user: ${GoogleAuthService.userId}');
         
         // Clear any temporary token since we've saved the real one
         await _clearTemporaryToken();
+      } else {
+        print('Cannot save FCM token: user not logged in');
       }
     } catch (e) {
       print('Error saving FCM token: $e');
-      // If update fails, try to create the field
-      if (e.toString().contains('No document to update')) {
+      // If update fails, try to create/merge the field
+      if (e.toString().contains('No document to update') || 
+          e.toString().contains('not found')) {
         try {
+          print('Document not found, creating with merge...');
           await _firestore
               .collection('users')
-              .doc(AuthService.userId)
+              .doc(GoogleAuthService.userId)
               .set({
             'fcmToken': token,
             'tokenUpdatedAt': FieldValue.serverTimestamp(),
             'lastActiveAt': FieldValue.serverTimestamp(),
+            'fcmTokenActive': true,
           }, SetOptions(merge: true));
-          print('FCM token created for user: ${AuthService.userId}');
+          print('FCM token created successfully for user: ${GoogleAuthService.userId}');
         } catch (createError) {
-          print('Error creating FCM token: $createError');
+          print('Error creating FCM token field: $createError');
         }
       }
     }
@@ -150,10 +327,41 @@ class NotificationService {
   // Handle user login - save any pending token
   static Future<void> onUserLogin() async {
     try {
-      // Get current token
-      final currentToken = await _messaging.getToken();
-      if (currentToken != null) {
-        await _saveFCMToken(currentToken);
+      print('Handling user login for FCM token...');
+      
+      // Check if messaging is supported
+      bool isSupported = await _messaging.isSupported();
+      if (!isSupported) {
+        print('Firebase Messaging not supported, skipping FCM token handling');
+        return;
+      }
+      
+      // Get current token with retry mechanism
+      String? currentToken;
+      int retryCount = 0;
+      const maxRetries = 3;
+      
+      while (currentToken == null && retryCount < maxRetries) {
+        try {
+          currentToken = await _messaging.getToken();
+          if (currentToken != null) {
+            print('Current FCM token obtained for logged-in user: $currentToken');
+            await _saveFCMToken(currentToken);
+            break;
+          } else {
+            retryCount++;
+            print('Current FCM token is null, retrying... ($retryCount/$maxRetries)');
+            if (retryCount < maxRetries) {
+              await Future.delayed(Duration(seconds: retryCount * 2));
+            }
+          }
+        } catch (e) {
+          retryCount++;
+          print('Error getting current FCM token (attempt $retryCount): $e');
+          if (retryCount < maxRetries) {
+            await Future.delayed(Duration(seconds: retryCount * 2));
+          }
+        }
       }
 
       // Check for any pending token
@@ -168,26 +376,61 @@ class NotificationService {
         
         if (tokenAge < maxAge) {
           await _saveFCMToken(pendingToken);
-          print('Saved pending FCM token after login');
+          print('Saved pending FCM token after login: $pendingToken');
         } else {
-          print('Pending token expired, will use current token');
+          print('Pending token expired, using current token');
         }
         
         await _clearTemporaryToken();
+      }
+      
+      // Set up periodic token validation for long-term users
+      await _setupPeriodicTokenValidation();
+      
+      if (currentToken == null) {
+        print('Warning: No FCM token available after login');
       }
     } catch (e) {
       print('Error handling user login token: $e');
     }
   }
 
+  // Set up periodic token validation for long-term logged-in users
+  static Future<void> _setupPeriodicTokenValidation() async {
+    try {
+      // Check when token was last updated
+      if (GoogleAuthService.userId != null) {
+        final userDoc = await _firestore.collection('users').doc(GoogleAuthService.userId).get();
+        if (userDoc.exists) {
+          final data = userDoc.data();
+          final tokenUpdatedAt = data?['tokenUpdatedAt'] as Timestamp?;
+          
+          if (tokenUpdatedAt != null) {
+            final daysSinceUpdate = DateTime.now().difference(tokenUpdatedAt.toDate()).inDays;
+            
+            // If token is older than 5 days, proactively refresh
+            if (daysSinceUpdate >= 5) {
+              print('Token is $daysSinceUpdate days old, proactively refreshing...');
+              await refreshFCMToken();
+            } else {
+              print('Token is $daysSinceUpdate days old, still fresh');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error in periodic token validation: $e');
+    }
+  }
+
   // Handle user logout - clean up token
   static Future<void> onUserLogout() async {
     try {
-      if (AuthService.userId != null) {
+      if (GoogleAuthService.userId != null) {
         // Mark token as inactive instead of deleting
         await _firestore
             .collection('users')
-            .doc(AuthService.userId)
+            .doc(GoogleAuthService.userId)
             .update({
           'fcmTokenActive': false,
           'lastLogoutAt': FieldValue.serverTimestamp(),
@@ -209,7 +452,7 @@ class NotificationService {
       final newToken = await _messaging.getToken();
       if (newToken != null) {
         print('Manual token refresh: $newToken');
-        if (AuthService.isLoggedIn) {
+        if (GoogleAuthService.isLoggedIn) {
           await _saveFCMToken(newToken);
         } else {
           await _storeTemporaryToken(newToken);
@@ -224,10 +467,10 @@ class NotificationService {
   static Future<void> onAppResumed() async {
     try {
       // Check if token needs refresh (older than 24 hours)
-      if (AuthService.isLoggedIn) {
+      if (GoogleAuthService.isLoggedIn) {
         final userDoc = await _firestore
             .collection('users')
-            .doc(AuthService.userId)
+            .doc(GoogleAuthService.userId)
             .get();
         
         if (userDoc.exists) {
@@ -262,10 +505,10 @@ class NotificationService {
       final token = await _messaging.getToken();
       if (token == null) return false;
       
-      if (AuthService.isLoggedIn) {
+      if (GoogleAuthService.isLoggedIn) {
         final userDoc = await _firestore
             .collection('users')
-            .doc(AuthService.userId)
+            .doc(GoogleAuthService.userId)
             .get();
         
         if (userDoc.exists) {
@@ -305,11 +548,34 @@ class NotificationService {
     Map<String, dynamic> data = const {},
   }) async {
     try {
+      // Generate unique notification ID for deduplication
+      final notificationId = _generateNotificationId(
+        toUserId: toUserId,
+        type: type,
+        title: title,
+        message: message,
+        data: data,
+      );
+
+      // Check if this notification was recently sent
+      if (_isRecentlySent(notificationId)) {
+        print('Duplicate notification prevented: $title to $toUserId');
+        return;
+      }
+
+      // Mark as sent to prevent duplicates
+      _markAsSent(notificationId);
+
+      print('Sending notification to: $toUserId');
+      print('Type: ${type.toString()}');
+      print('Title: $title');
+      print('Message: $message');
+
       final notification = AppNotification(
         id: _firestore.collection('notifications').doc().id,
         userId: toUserId,
-        fromUserId: AuthService.userId ?? '',
-        fromUserName: AuthService.currentUser?.name ?? 'System',
+        fromUserId: GoogleAuthService.userId ?? '',
+        fromUserName: GoogleAuthService.currentUser?.name ?? 'System',
         type: type,
         title: title,
         message: message,
@@ -323,7 +589,7 @@ class NotificationService {
           .doc(notification.id)
           .set(notification.toMap());
 
-      print('Notification sent to user: $toUserId');
+      print('Notification saved to Firestore for user: $toUserId');
 
       // Send push notification if user has FCM token
       await _sendPushNotification(toUserId, title, message, data);
@@ -345,8 +611,35 @@ class NotificationService {
       final fcmToken = userDoc.data()?['fcmToken'];
 
       if (fcmToken != null) {
+        // Generate unique FCM notification ID to prevent duplicates
+        final fcmNotificationId = 'fcm_${_generateNotificationId(
+          toUserId: toUserId,
+          type: NotificationType.general, // Use general type for FCM deduplication
+          title: title,
+          message: message,
+          data: data,
+        )}';
+
+        // Check for recent FCM notifications to same user
+        final recentFcmQuery = await _firestore
+            .collection('fcm_notifications')
+            .where('token', isEqualTo: fcmToken)
+            .where('notification.title', isEqualTo: title)
+            .where('notification.body', isEqualTo: message)
+            .where('timestamp', isGreaterThan: Timestamp.fromDate(
+              DateTime.now().subtract(Duration(minutes: _deduplicationWindowMinutes))
+            ))
+            .limit(1)
+            .get();
+
+        if (recentFcmQuery.docs.isNotEmpty) {
+          print('Duplicate FCM notification prevented for user: $toUserId');
+          return;
+        }
+
         // Queue notification for Cloud Function to send
         await _firestore.collection('fcm_notifications').add({
+          'id': fcmNotificationId,
           'token': fcmToken,
           'notification': {
             'title': title,
@@ -354,11 +647,13 @@ class NotificationService {
           },
           'data': data,
           'timestamp': FieldValue.serverTimestamp(),
+          'userId': toUserId, // Add userId for easier tracking
         });
         
         print('FCM notification queued for Cloud Function processing');
         print('Title: $title');
         print('Message: $message');
+        print('User: $toUserId');
       } else {
         print('No FCM token found for user: $toUserId');
       }
@@ -377,12 +672,12 @@ class NotificationService {
       toUserId: adminId,
       type: NotificationType.rentalRequest,
       title: 'New Rental Request',
-      message: '${AuthService.currentUser?.name} wants to rent ${product.name}',
+      message: '${GoogleAuthService.currentUser?.name} wants to rent ${product.name}',
       data: {
         'rentalId': rental.id,
         'productId': product.id,
         'productName': product.name,
-        'customerName': AuthService.currentUser?.name,
+        'customerName': GoogleAuthService.currentUser?.name,
       },
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 
 class AppSelectionScreen extends StatelessWidget {
   const AppSelectionScreen({super.key});
@@ -98,11 +98,11 @@ class AppSelectionScreen extends StatelessWidget {
                   // Rent App Option (Second)
                   _buildAppOption(
                     context: context,
-                    title: AuthService.isLoggedIn 
-                        ? 'Rent Equipment (${AuthService.currentUser?.name ?? 'Signed In'})'
+                    title: GoogleAuthService.isLoggedIn
+                        ? 'Rent Equipment (${GoogleAuthService.currentUser?.name ?? 'Signed In'})'
                         : 'Rent Equipment',
                     subtitle: 'Professional Rental Service',
-                    description: AuthService.isLoggedIn 
+                    description: GoogleAuthService.isLoggedIn 
                         ? 'Welcome back! Continue renting professional equipment'
                         : 'Rent cameras, lenses, and equipment for your projects and events',
                     icon: Icons.camera_alt,
@@ -304,7 +304,7 @@ class AppSelectionScreen extends StatelessWidget {
       Navigator.pop(context); // Close loading dialog
       
       // Check if user is already authenticated
-      if (AuthService.isLoggedIn) {
+      if (GoogleAuthService.isLoggedIn) {
         // User is already signed in, go directly to main app
         Navigator.pushReplacementNamed(context, '/home');
       } else {
@@ -458,7 +458,7 @@ class AppSelectionScreen extends StatelessWidget {
     
     if (appType == 'rent') {
       // Navigate to rent app (existing home screen)
-      if (AuthService.isLoggedIn) {
+      if (GoogleAuthService.isLoggedIn) {
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         Navigator.pushReplacementNamed(context, '/welcome');

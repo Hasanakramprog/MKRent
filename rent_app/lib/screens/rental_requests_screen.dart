@@ -3,7 +3,7 @@ import '../models/rental.dart';
 import '../models/product.dart';
 import '../services/rental_service.dart';
 import '../services/product_service.dart';
-import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 
 class RentalRequestsScreen extends StatefulWidget {
   const RentalRequestsScreen({super.key});
@@ -33,7 +33,7 @@ class _RentalRequestsScreenState extends State<RentalRequestsScreen>
 
   Future<void> _loadRentalRequests() async {
     try {
-      final currentUser = AuthService.currentUser;
+      final currentUser = GoogleAuthService.currentUser;
       if (currentUser != null) {
         final requests = await RentalService.getUserRentals(currentUser.id);
         setState(() {
