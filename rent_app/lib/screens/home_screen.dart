@@ -44,6 +44,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   late Animation<double> _searchAnimation;
   bool _isSearchVisible = true;
 
+  // Animation controllers for "Rent" text
+  late AnimationController _rentTextAnimationController;
+  late Animation<double> _rentTextScaleAnimation;
+  late Animation<Color?> _rentTextColorAnimation;
+  bool _isRentAnimationInitialized = false;
+
   @override
   void initState() {
     super.initState();   WidgetsBinding.instance.addObserver(this);
@@ -71,6 +77,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     
     // Start with search section visible
     _searchAnimationController.forward();
+
+    // Initialize "Rent" text animation
+    _rentTextAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _rentTextScaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.2,
+    ).animate(CurvedAnimation(
+      parent: _rentTextAnimationController,
+      curve: Curves.elasticInOut,
+    ));
+
+    _rentTextColorAnimation = ColorTween(
+      begin: Colors.white,
+      end: const Color(0xFFFFD700),
+    ).animate(CurvedAnimation(
+      parent: _rentTextAnimationController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Start the "Rent" text animation and repeat
+    _rentTextAnimationController.repeat(reverse: true);
+    
+    // Mark animation as initialized
+    _isRentAnimationInitialized = true;
     
     // Auto-collapse search section after 3 seconds
     Future.delayed(const Duration(seconds: 5), () {
@@ -93,6 +127,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       _searchAnimationController.stop();
     }
     _searchAnimationController.dispose();
+    
+    if (_isRentAnimationInitialized) {
+      if (_rentTextAnimationController.isAnimating) {
+        _rentTextAnimationController.stop();
+      }
+      _rentTextAnimationController.dispose();
+    }
     
     super.dispose();
   }
@@ -518,6 +559,56 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             
             const SizedBox(height: 12),
             
+            // Buy App
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/buy-app-home');
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.blue.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.shopping_bag, color: Colors.blue),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Buy App',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Buy Equipment',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.blue, size: 16),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 12),
+            
             // Buy App (Coming Soon)
             GestureDetector(
               onTap: () {
@@ -659,6 +750,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  // "Rent" label with animation
+                  _isRentAnimationInitialized
+                      ? AnimatedBuilder(
+                          animation: _rentTextAnimationController,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: _rentTextScaleAnimation.value,
+                              child: Text(
+                                'Rent App',
+                                style: TextStyle(
+                                  color: _rentTextColorAnimation.value,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 3.0,
+                                      color: (_rentTextColorAnimation.value ?? const Color(0xFFFFD700)).withOpacity(0.5),
+                                      offset: const Offset(1.0, 1.0),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : const Text(
+                          'Rent App',
+                          style: TextStyle(
+                            color: Color(0xFFFFD700),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                   const Spacer(),
                   // Cart button with badge (authenticated users) or Sign In button (guests)
                   _isGuestMode

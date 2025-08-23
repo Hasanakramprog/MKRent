@@ -129,8 +129,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   RangeSlider(
                     values: RangeValues(_minPrice, _maxPrice),
                     min: 0,
-                    max: 1000,
-                    divisions: 100,
+                    max: 50000, // Higher max for camera equipment
+                    divisions: 500,
                     activeColor: const Color(0xFFFFD700), // Yellow
                     inactiveColor: Colors.grey[600],
                     onChanged: (RangeValues values) {

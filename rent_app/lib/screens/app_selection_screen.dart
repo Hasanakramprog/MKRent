@@ -84,13 +84,8 @@ class AppSelectionScreen extends StatelessWidget {
                     description: 'Purchase new & certified cameras, lenses, and equipment with warranty',
                     icon: Icons.shopping_cart,
                     color: const Color(0xFF4CAF50),
-                    isAvailable: false,
-                    onTap: () => _showComingSoon(
-                      context, 
-                      'Buy Equipment', 
-                      'Professional Camera Store',
-                      'Soon you\'ll be able to purchase cameras, lenses, and equipment directly from our store with full warranty and support!'
-                    ),
+                    isAvailable: true,
+                    onTap: () => _handleBuyAppSelection(context),
                   ),
                   
                   const SizedBox(height: 10),
@@ -314,6 +309,33 @@ class AppSelectionScreen extends StatelessWidget {
     });
   }
 
+  void _handleBuyAppSelection(BuildContext context) {
+    // Show loading indicator while checking authentication
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+        ),
+      ),
+    );
+
+    // Small delay to show loading (better UX)
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.pop(context); // Close loading dialog
+      
+      // Check if user is already authenticated
+      if (GoogleAuthService.isLoggedIn) {
+        // User is already signed in, go directly to buy app
+        Navigator.pushReplacementNamed(context, '/buy-app-home');
+      } else {
+        // User is not signed in, show guest/sign-in options
+        _showBuyAppOptions(context);
+      }
+    });
+  }
+
   void _showRentAppOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -374,6 +396,77 @@ class AppSelectionScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(context);
                   _selectApp(context, 'rent');
+                },
+              ),
+              
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBuyAppOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              Text(
+                'Choose how to access Buy App',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Browse as Guest Option
+              _buildAccessOption(
+                context: context,
+                title: 'Browse as Guest',
+                subtitle: 'View cameras without signing in',
+                icon: Icons.visibility,
+                color: const Color(0xFF4CAF50),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushReplacementNamed(context, '/buy-app-guest');
+                },
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Sign In Option
+              _buildAccessOption(
+                context: context,
+                title: 'Sign In to Buy',
+                subtitle: 'Access all features and purchase cameras',
+                icon: Icons.login,
+                color: const Color(0xFF4CAF50),
+                onTap: () {
+                  Navigator.pop(context);
+                  _selectApp(context, 'buy');
                 },
               ),
               
@@ -460,6 +553,13 @@ class AppSelectionScreen extends StatelessWidget {
       // Navigate to rent app (existing home screen)
       if (GoogleAuthService.isLoggedIn) {
         Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        Navigator.pushReplacementNamed(context, '/welcome');
+      }
+    } else if (appType == 'buy') {
+      // Navigate to buy app
+      if (GoogleAuthService.isLoggedIn) {
+        Navigator.pushReplacementNamed(context, '/buy-app-home');
       } else {
         Navigator.pushReplacementNamed(context, '/welcome');
       }
