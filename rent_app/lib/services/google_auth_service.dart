@@ -44,6 +44,14 @@ class GoogleAuthService {
     }
   }
 
+  // Reload current user data (useful for email auth integration)
+  static Future<void> reloadCurrentUser() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _loadUserData(user.uid);
+    }
+  }
+
   // Load user data from Firestore
   static Future<void> _loadUserData(String userId) async {
     try {

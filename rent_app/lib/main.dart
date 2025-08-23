@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/app_selection_screen.dart';
-import 'screens/google_signin_screen.dart';
+import 'screens/email_signin_screen.dart';
 import 'screens/phone_number_collection_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/buy_app_home_screen.dart';
@@ -189,6 +189,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             return MaterialPageRoute(
               builder: (context) => const WelcomeScreen(),
             );
+          case '/email-signin':
+            return MaterialPageRoute(
+              builder: (context) => const EmailSignInScreen(),
+            );
           case '/home':
             return MaterialPageRoute(
               builder: (context) => const HomeScreen(),
@@ -236,7 +240,7 @@ class AuthWrapper extends StatelessWidget {
 
         // Check if user is signed in
         if (snapshot.hasData && snapshot.data != null) {
-          // User is signed in, check if we have user data and phone number
+          // User is signed in, proceed without email verification check
           if (GoogleAuthService.isLoggedIn) {
             if (GoogleAuthService.needsPhoneNumber) {
               // User needs to provide phone number
@@ -247,11 +251,11 @@ class AuthWrapper extends StatelessWidget {
             }
           } else {
             // Firebase user exists but we don't have user data
-            return const GoogleSignInScreen();
+            return const WelcomeScreen();
           }
         } else {
           // User is not signed in
-          return const GoogleSignInScreen();
+          return const WelcomeScreen();
         }
       },
     );

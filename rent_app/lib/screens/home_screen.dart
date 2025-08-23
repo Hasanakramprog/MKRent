@@ -10,7 +10,7 @@ import '../widgets/search_bar_widget.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/notification_badge.dart';
 import '../widgets/brand_slider.dart';
-import 'google_signin_screen.dart';
+import 'welcome_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isGuestMode;
@@ -461,10 +461,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 // Check if widget is still mounted before navigation
                 if (!mounted) return;
                 
-                // Navigate to Google Sign-In screen and clear all previous routes
+                // Navigate to Welcome screen and clear all previous routes
                 navigator.pushAndRemoveUntil(
                   MaterialPageRoute(
-                    builder: (context) => const GoogleSignInScreen(),
+                    builder: (context) => const WelcomeScreen(),
                   ),
                   (route) => false,
                 );

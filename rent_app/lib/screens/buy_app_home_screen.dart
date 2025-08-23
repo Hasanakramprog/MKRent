@@ -9,7 +9,7 @@ import '../widgets/search_bar_widget.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/notification_badge.dart';
 import '../widgets/brand_slider.dart';
-import 'google_signin_screen.dart';
+import 'welcome_screen.dart';
 
 class BuyAppHomeScreen extends StatefulWidget {
   final bool isGuestMode;
@@ -511,9 +511,9 @@ class _BuyAppHomeScreenState extends State<BuyAppHomeScreen> with TickerProvider
                 // Close loading dialog
                 navigator.pop();
                 
-                // Navigate to sign in screen
+                // Navigate to welcome screen
                 navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const GoogleSignInScreen()),
+                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
                   (route) => false,
                 );
               } catch (e) {
