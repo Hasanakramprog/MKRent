@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/google_auth_service.dart';
+import 'marketplace_home_screen.dart';
 
 class AppSelectionScreen extends StatelessWidget {
   const AppSelectionScreen({super.key});
@@ -18,57 +19,63 @@ class AppSelectionScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 5),
                   
-                  // Logo Section
-                  Container(
-                    height: 70,
-                    width: 70,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFFFD700).withOpacity(0.3),
-                        width: 2,
+                  // Logo and Title Section - Horizontal Layout
+                  Row(
+                    children: [
+                      // Logo Section
+                      Container(
+                        height: 50,
+                        width: 50,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1A1A),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFFFD700).withOpacity(0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            'assets/logos/MKPro.jpg',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.business,
+                                color: Color(0xFFFFD700),
+                                size: 30,
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Image.asset(
-                        'assets/logos/MKPro.jpg',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.business,
-                            color: Color(0xFFFFD700),
-                            size: 40,
-                          );
-                        },
+                      
+                      const SizedBox(width: 12),
+                      
+                      // Title and Subtitle
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'MKPro Apps',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Select Your Service',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Title
-                  const Text(
-                    'MKPro Apps',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  
-                  const SizedBox(height: 4),
-                  
-                  // Subtitle
-                  Text(
-                    'Select Your Service',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[400],
-                    ),
-                    textAlign: TextAlign.center,
+                    ],
                   ),
                 ],
               ),
@@ -88,7 +95,7 @@ class AppSelectionScreen extends StatelessWidget {
                     onTap: () => _handleBuyAppSelection(context),
                   ),
                   
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   
                   // Rent App Option (Second)
                   _buildAppOption(
@@ -106,7 +113,7 @@ class AppSelectionScreen extends StatelessWidget {
                     onTap: () => _handleRentAppSelection(context),
                   ),
                   
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   
                   // Marketplace Option (Third - OLX Style)
                   _buildAppOption(
@@ -116,12 +123,45 @@ class AppSelectionScreen extends StatelessWidget {
                     description: 'Connect with photographers to buy and sell used equipment safely',
                     icon: Icons.storefront,
                     color: const Color(0xFF9C27B0),
+                    isAvailable: true,
+                    onTap: () => _handleMarketplaceSelection(context),
+                  ),
+                  
+                  const SizedBox(height: 6),
+                  
+                  // Training App Option (Fourth)
+                  _buildAppOption(
+                    context: context,
+                    title: 'Photography Training',
+                    subtitle: 'Learn & Master Skills',
+                    description: 'Professional courses for cameras, drones, and photography techniques',
+                    icon: Icons.school,
+                    color: const Color(0xFF2196F3),
                     isAvailable: false,
                     onTap: () => _showComingSoon(
                       context,
-                      'Camera Marketplace',
-                      'Buy & Sell Community',
-                      'Coming soon! A secure marketplace where photographers can buy and sell used equipment, connect with the community, and find great deals on pre-owned gear!'
+                      'Photography Training Hub',
+                      'Learn & Master Skills',
+                      'Coming soon! Comprehensive training courses covering camera techniques, drone operations, photography fundamentals, and advanced skills from industry professionals!'
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 6),
+                  
+                  // Maintenance App Option (Fifth)
+                  _buildAppOption(
+                    context: context,
+                    title: 'Equipment Maintenance',
+                    subtitle: 'Care & Service Center',
+                    description: 'Professional maintenance, repair, and care services for your equipment',
+                    icon: Icons.build,
+                    color: const Color(0xFFFF9800),
+                    isAvailable: false,
+                    onTap: () => _showComingSoon(
+                      context,
+                      'Equipment Maintenance Hub',
+                      'Care & Service Center',
+                      'Coming soon! Professional maintenance services including camera servicing, lens calibration, drone repairs, sensor cleaning, and equipment care guidance!'
                     ),
                   ),
                 ],
@@ -181,12 +221,12 @@ class AppSelectionScreen extends StatelessWidget {
       onTap: isAvailable ? onTap : null,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: isAvailable 
               ? const Color(0xFF1A1A1A) 
               : const Color(0xFF1A1A1A).withOpacity(0.5),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isAvailable 
                 ? color.withOpacity(0.3) 
@@ -196,8 +236,8 @@ class AppSelectionScreen extends StatelessWidget {
           boxShadow: isAvailable ? [
             BoxShadow(
               color: color.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ] : null,
         ),
@@ -205,52 +245,56 @@ class AppSelectionScreen extends StatelessWidget {
           children: [
             // Icon
             Container(
-              width: 45,
-              height: 45,
+              width: 35,
+              height: 35,
               decoration: BoxDecoration(
                 color: isAvailable ? color : Colors.grey,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 color: Colors.white,
-                size: 22,
+                size: 18,
               ),
             ),
             
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             
             // Title
             Text(
               title,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: isAvailable ? Colors.white : Colors.grey,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             
             // Subtitle
             Text(
               subtitle,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.w500,
                 color: isAvailable ? color : Colors.grey,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             
             // Description
             Text(
               description,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 9,
                 color: isAvailable ? Colors.grey[400] : Colors.grey[600],
               ),
               textAlign: TextAlign.center,
@@ -259,17 +303,17 @@ class AppSelectionScreen extends StatelessWidget {
             ),
             
             if (!isAvailable) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.orange.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
                   'Coming Soon',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 8,
                     fontWeight: FontWeight.w600,
                     color: Colors.orange,
                   ),
@@ -333,6 +377,32 @@ class AppSelectionScreen extends StatelessWidget {
         // User is not signed in, show guest/sign-in options
         _showBuyAppOptions(context);
       }
+    });
+  }
+
+  void _handleMarketplaceSelection(BuildContext context) {
+    // Show loading indicator while checking authentication
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9C27B0)),
+        ),
+      ),
+    );
+
+    // Small delay to show loading (better UX)
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.pop(context); // Close loading dialog
+      
+      // Navigate to marketplace (authentication handled within marketplace)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MarketplaceHomeScreen(),
+        ),
+      );
     });
   }
 
