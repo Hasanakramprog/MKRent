@@ -5,6 +5,7 @@ import 'dart:io';
 import '../models/marketplace_listing.dart';
 import '../services/marketplace_service.dart';
 import '../services/google_auth_service.dart';
+import '../services/category_service.dart';
 import '../widgets/location_dropdown.dart';
 
 class MarketplaceCreateListingScreen extends StatefulWidget {
@@ -31,7 +32,7 @@ class _MarketplaceCreateListingScreenState extends State<MarketplaceCreateListin
   final _tagsController = TextEditingController();
 
   MarketplaceCondition _condition = MarketplaceCondition.good;
-  String _selectedCategory = 'Cameras';
+  String? _selectedCategory; // Changed to nullable to avoid mismatch issues
   String _selectedLocation = '';
   bool _isNegotiable = false;
   bool _isLoading = false;
@@ -39,26 +40,53 @@ class _MarketplaceCreateListingScreenState extends State<MarketplaceCreateListin
   List<File> _selectedImages = [];
   List<String> _existingImageUrls = [];
 
-  final List<String> _categories = [
-    'Cameras',
-    'Lenses',
-    'Drones',
-    'Lighting',
-    'Audio',
-    'Accessories',
-    'Tripods',
-    'Filters',
-  ];
+  List<String> _categories = []; // Will be loaded from Firebase
 
   @override
   void initState() {
     super.initState();
+    _loadCategories(); // Load categories from Firebase
     if (widget.editListing != null) {
       _populateForm();
     } else {
       // Set default user info
       _emailController.text = GoogleAuthService.currentUser?.email ?? '';
       _phoneController.text = GoogleAuthService.currentUser?.phone ?? '';
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      // Initialize default categories if none exist
+      await CategoryService.initializeDefaultCategories();
+      
+      final categories = await CategoryService.getAllCategories();
+      setState(() {
+        _categories = categories.map((category) => category.name).toList();
+        // Set the first category as selected if none is selected
+        if (_categories.isNotEmpty && _selectedCategory == null) {
+          _selectedCategory = _categories.first;
+        }
+      });
+    } catch (e) {
+      print('Error loading categories: $e');
+      // Set default categories as fallback
+      setState(() {
+        _categories = [
+          'Cameras',
+          'Lenses', 
+          'Drones',
+          'Lighting',
+          'Audio',
+          'Accessories',
+          'Tripods',
+          'Filters',
+        ];
+        // Set the first category as selected if none is selected
+        if (_selectedCategory == null) {
+          _selectedCategory = _categories.first;
+        }
+      });
     }
   }
 
@@ -210,7 +238,7 @@ class _MarketplaceCreateListingScreenState extends State<MarketplaceCreateListin
         brand: _brandController.text.trim(),
         price: double.parse(_priceController.text),
         imageUrls: _existingImageUrls, // Start with existing URLs
-        category: _selectedCategory,
+        category: _selectedCategory!, // Using ! since we validate it's not null
         tags: tags,
         condition: _condition,
         location: _selectedLocation,
@@ -536,6 +564,12 @@ class _MarketplaceCreateListingScreenState extends State<MarketplaceCreateListin
                 }).toList(),
                 onChanged: (value) {
                   setState(() => _selectedCategory = value!);
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select a category';
+                  }
+                  return null;
                 },
               ),
 

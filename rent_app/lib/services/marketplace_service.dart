@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../models/marketplace_listing.dart';
 import '../services/google_auth_service.dart';
+import '../services/category_service.dart';
 
 class MarketplaceService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -359,6 +360,17 @@ class MarketplaceService {
       return suggestions.take(10).toList();
     } catch (e) {
       print('Error getting search suggestions: $e');
+      return [];
+    }
+  }
+
+  // Get available categories from CategoryService
+  static Future<List<String>> getCategories() async {
+    try {
+      final categories = await CategoryService.getAllCategories();
+      return categories.map((category) => category.name).toList();
+    } catch (e) {
+      print('Error getting categories from CategoryService: $e');
       return [];
     }
   }

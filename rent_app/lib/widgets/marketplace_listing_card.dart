@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import '../models/marketplace_listing.dart';
 
@@ -16,6 +17,7 @@ class MarketplaceListingCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        height: 200, // Fixed height to provide bounded constraints
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(12),
@@ -33,134 +35,138 @@ class MarketplaceListingCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // Image
-            Expanded(
-              flex: 3,
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: listing.imageUrls.isNotEmpty
-                      ? Image.network(
-                          listing.imageUrls.first,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: listing.imageUrls.isNotEmpty
+                          ? Image.network(
+                              listing.imageUrls.first,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[800],
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.grey,
+                                    size: 40,
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
                               color: Colors.grey[800],
                               child: const Icon(
                                 Icons.camera_alt,
                                 color: Colors.grey,
                                 size: 40,
                               ),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: Colors.grey[800],
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.grey,
-                            size: 40,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-            
-            // Content
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    Text(
-                      listing.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    
-                    const SizedBox(height: 3),
-                    
-                    // Brand
-                    Text(
-                      listing.brand,
-                      style: const TextStyle(
-                        color: Color(0xFFFFD700),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    
-                    const SizedBox(height: 3),
-                    
-                    // Price
-                    Text(
-                      listing.formattedPrice,
-                      style: const TextStyle(
-                        color: Color(0xFFFFD700),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 3),
-                    
-                    // Condition and Location in one compact row
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.verified,
-                          color: _getConditionColor(listing.condition),
-                          size: 10,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          listing.conditionText,
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 9,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.location_on,
-                          color: Colors.grey,
-                          size: 10,
-                        ),
-                        const SizedBox(width: 3),
-                        Expanded(
-                          child: Text(
-                            listing.location,
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 9,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                
+                // Content
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Title
+                        Text(
+                          listing.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        const SizedBox(height: 1),
+                        
+                        // Brand
+                        Text(
+                          listing.brand,
+                          style: const TextStyle(
+                            color: Color(0xFFFFD700),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        const SizedBox(height: 1),
+                        
+                        // Price
+                        Text(
+                          listing.formattedPrice,
+                          style: const TextStyle(
+                            color: Color(0xFFFFD700),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 1),
+                        
+                        // Condition and Location in one compact row
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.verified,
+                              color: _getConditionColor(listing.condition),
+                              size: 10,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              listing.conditionText,
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 9,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.grey,
+                              size: 10,
+                            ),
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                listing.location,
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 9,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
             
             // Featured badge
