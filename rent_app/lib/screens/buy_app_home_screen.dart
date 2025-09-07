@@ -535,282 +535,177 @@ class _BuyAppHomeScreenState extends State<BuyAppHomeScreen> with TickerProvider
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: const Color(0xFFFFD700).withOpacity(0.3),
-            width: 1,
-          ),
-        ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.apps, color: Color(0xFFFFD700), size: 24),
-            SizedBox(width: 12),
-            Text(
-              'Switch App',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const Icon(Icons.apps, color: Color(0xFFFFD700)),
+            const SizedBox(width: 8),
+            const Text('Switch App', style: TextStyle(color: Colors.white)),
           ],
         ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Choose which app you want to use:',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Choose which app you want to use:',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            
+            // Current App (Buy App)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color:  const Color(0xFF4CAF50).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFF4CAF50),
+                  width: 2,
                 ),
               ),
-              const SizedBox(height: 20),
-              
-              // Rent App Option
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  // Navigate to main rent app home screen
-                  Navigator.pushReplacementNamed(context, '/home');
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.grey.withOpacity(0.2),
-                      width: 1,
+              child: Row(
+                children: [
+                  const Icon(Icons.shopping_bag, color: Color(0xFF4CAF50)),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Buy App',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Currently Active',
+                          style: TextStyle(
+                            color: Color(0xFFFFD700),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Rent App',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Rent professional equipment',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.grey,
-                        size: 16,
-                      ),
-                    ],
-                  ),
-                ),
+                  const Icon(Icons.check_circle, color: Color(0xFFFFD700)),
+                ],
               ),
-              
-              const SizedBox(height: 12),
-              
-              // Buy App - Currently Active
-              Container(
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Rent App
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/home');
+              },
+              child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFD700).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Color(0xFFFFD700).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: const Color(0xFFFFD700),
-                    width: 2,
+                    color: Color(0xFFFFD700).withOpacity(0.5),
+                    width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFFD700).withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD700).withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.shopping_bag,
-                        color: Color(0xFFFFD700),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+                    const Icon(Icons.camera_alt, color:Color(0xFFFFD700)),
+                    const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Buy App',
+                            'Rent App',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 2),
                           Text(
-                            'Currently Active',
+                            'Rent Equipment',
                             style: TextStyle(
                               color: Color(0xFFFFD700),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.check_circle,
-                      color: Color(0xFFFFD700),
-                      size: 20,
-                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Color(0xFFFFD700), size: 16),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 12),
-              
-              // Marketplace - Coming Soon
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  _showComingSoonDialog();
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.grey.withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.store,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Marketplace',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Coming Soon',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.grey,
-                        size: 16,
-                      ),
-                    ],
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Marketplace App
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/marketplace-home');
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.purple.withOpacity(0.5),
+                    width: 1,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Close',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
+                child: Row(
+                  children: [
+                    const Icon(Icons.storefront, color: Colors.purple),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Marketplace App',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Buy & Sell Equipment',
+                            style: TextStyle(
+                              color: Colors.purple,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.purple, size: 16),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showComingSoonDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text(
-          'Coming Soon',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'The Marketplace is currently under development. We\'ll notify you when it\'s available!',
-          style: TextStyle(color: Colors.grey),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamedAndRemoveUntil(context, '/app-selection', (route) => false);
+            },
             child: const Text(
-              'OK',
+              'Go to App Selection',
               style: TextStyle(color: Color(0xFFFFD700)),
             ),
           ),

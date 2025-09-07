@@ -569,16 +569,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: const Color(0xFF4CAF50).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: Colors.blue.withOpacity(0.5),
+                    color: const Color(0xFF4CAF50).withOpacity(0.5),
                     width: 1,
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.shopping_bag, color: Colors.blue),
+                    const Icon(Icons.shopping_bag, color: Color(0xFF4CAF50)),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
@@ -594,14 +594,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           Text(
                             'Buy Equipment',
                             style: TextStyle(
-                              color: Colors.blue,
+                              color: Color(0xFF4CAF50),
                               fontSize: 12,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios, color: Colors.blue, size: 16),
+                    const Icon(Icons.arrow_forward_ios, color: Color(0xFF4CAF50), size: 16),
                   ],
                 ),
               ),
@@ -609,49 +609,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             
             const SizedBox(height: 12),
             
-            // Buy App (Coming Soon)
+            // Marketplace App
             GestureDetector(
               onTap: () {
                 Navigator.pop(context);
-                _showComingSoonDialog();
+                Navigator.pushNamed(context, '/marketplace-home');
               },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.purple.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.purple.withOpacity(0.5),
                     width: 1,
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.shopping_cart, color: Colors.grey[400]),
+                    const Icon(Icons.storefront, color: Colors.purple),
                     const SizedBox(width: 12),
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Buy App',
+                            'Marketplace App',
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Text(
-                            'Coming Soon',
+                          Text(
+                            'Buy & Sell Equipment',
                             style: TextStyle(
-                              color: Colors.orange,
+                              color: Colors.purple,
                               fontSize: 12,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.purple, size: 16),
                   ],
                 ),
               ),

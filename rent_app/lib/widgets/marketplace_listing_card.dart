@@ -5,11 +5,13 @@ import '../models/marketplace_listing.dart';
 class MarketplaceListingCard extends StatelessWidget {
   final MarketplaceListing listing;
   final VoidCallback onTap;
+  final VoidCallback? onChatTap;
 
   const MarketplaceListingCard({
     super.key,
     required this.listing,
     required this.onTap,
+    this.onChatTap,
   });
 
   @override
@@ -114,14 +116,49 @@ class MarketplaceListingCard extends StatelessWidget {
                         
                         const SizedBox(height: 1),
                         
-                        // Price
-                        Text(
-                          listing.formattedPrice,
-                          style: const TextStyle(
-                            color: Color(0xFFFFD700),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        // Price and Chat Button Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              listing.formattedPrice,
+                              style: const TextStyle(
+                                color: Color(0xFFFFD700),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (onChatTap != null)
+                              GestureDetector(
+                                onTap: onChatTap,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFD700),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.chat_bubble_outline,
+                                        color: Colors.black,
+                                        size: 10,
+                                      ),
+                                      SizedBox(width: 2),
+                                      Text(
+                                        'Chat',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         
                         const SizedBox(height: 1),

@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/marketplace_listing.dart';
 import '../services/marketplace_service.dart';
 import '../services/google_auth_service.dart';
+import '../services/chat_service.dart';
+import 'chat_detail_screen.dart';
 
 class MarketplaceListingDetailScreen extends StatefulWidget {
   final String listingId;
@@ -83,6 +85,66 @@ class _MarketplaceListingDetailScreenState extends State<MarketplaceListingDetai
       }
     } catch (e) {
       _showSnackBar('Error contacting seller: $e', Colors.red);
+    }
+  }
+
+  Future<void> _startProductChat() async {
+    try {
+      final currentUser = GoogleAuthService.currentUser;
+      if (currentUser == null) {
+        _showSnackBar('Please sign in to chat with sellers', Colors.red);
+        return;
+      }
+
+      if (_listing == null) {
+        _showSnackBar('Listing not found', Colors.red);
+        return;
+      }
+
+      // Don't allow users to chat with themselves
+      if (_listing!.sellerId == currentUser.id) {
+        _showSnackBar('You cannot chat with yourself', Colors.orange);
+        return;
+      }
+
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
+          ),
+        ),
+      );
+
+      // Create or get existing chat for this product
+      final chatId = await ChatService.createOrGetProductChat(
+        otherUserId: _listing!.sellerId,
+        otherUserName: _listing!.sellerName,
+        product: _listing!,
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Navigate to chat detail screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatDetailScreen(chatId: chatId),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        _showSnackBar('Failed to start chat: $e', Colors.red);
+      }
+      print('Error starting product chat: $e');
     }
   }
 
@@ -250,6 +312,77 @@ class _MarketplaceListingDetailScreenState extends State<MarketplaceListingDetai
                       _buildStatusChip(_listing!.category, Colors.green),
                     ],
                   ),
+
+                  const SizedBox(height: 16),
+
+                  // MKPro Chat Button
+                  if (_listing!.sellerId != GoogleAuthService.currentUser?.id)
+                    GestureDetector(
+                      onTap: () => _startProductChat(),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1A1A),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFFFD700),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFFD700).withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD700).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.chat,
+                                color: Color(0xFFFFD700),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'MKPro Chat',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Chat with seller about this product',
+                                    style: TextStyle(
+                                      color: Color(0xFFFFD700),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Color(0xFFFFD700),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
 
                   const SizedBox(height: 24),
 
@@ -458,34 +591,37 @@ class _MarketplaceListingDetailScreenState extends State<MarketplaceListingDetai
       ),
 
       // Contact Floating Action Buttons (Only for non-admin users who are not the seller)
-      floatingActionButton: !GoogleAuthService.isAdmin && 
-                           _listing!.sellerId != GoogleAuthService.currentUser?.id
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FloatingActionButton.extended(
-                  onPressed: () => _contactSeller('phone'),
-                  backgroundColor: const Color(0xFF4CAF50),
-                  icon: const Icon(Icons.phone),
-                  label: const Text('Call'),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.extended(
-                  onPressed: () => _contactSeller('whatsapp'),
-                  backgroundColor: const Color(0xFF25D366),
-                  icon: const Icon(Icons.message),
-                  label: const Text('WhatsApp'),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.extended(
-                  onPressed: () => _contactSeller('email'),
-                  backgroundColor: const Color(0xFF9C27B0),
-                  icon: const Icon(Icons.email),
-                  label: const Text('Email'),
-                ),
-              ],
-            )
-          : null,
+      // floatingActionButton: !GoogleAuthService.isAdmin && 
+      //                      _listing!.sellerId != GoogleAuthService.currentUser?.id
+      //     ? Column(
+      //         mainAxisSize: MainAxisSize.min,
+      //         children: [
+      //           FloatingActionButton.extended(
+      //             heroTag: "phone_fab",
+      //             onPressed: () => _contactSeller('phone'),
+      //             backgroundColor: const Color(0xFF4CAF50),
+      //             icon: const Icon(Icons.phone),
+      //             label: const Text('Call'),
+      //           ),
+      //           const SizedBox(height: 8),
+      //           FloatingActionButton.extended(
+      //             heroTag: "whatsapp_fab",
+      //             onPressed: () => _contactSeller('whatsapp'),
+      //             backgroundColor: const Color(0xFF25D366),
+      //             icon: const Icon(Icons.message),
+      //             label: const Text('WhatsApp'),
+      //           ),
+      //           const SizedBox(height: 8),
+      //           FloatingActionButton.extended(
+      //             heroTag: "email_fab",
+      //             onPressed: () => _contactSeller('email'),
+      //             backgroundColor: const Color(0xFF9C27B0),
+      //             icon: const Icon(Icons.email),
+      //             label: const Text('Email'),
+      //           ),
+              // ],
+            // )
+          // : null,
     );
   }
 

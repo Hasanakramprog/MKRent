@@ -4,12 +4,15 @@ import '../models/marketplace_listing.dart';
 import '../services/marketplace_service.dart';
 import '../services/google_auth_service.dart';
 import '../services/category_service.dart';
+import '../services/chat_service.dart';
 import '../widgets/marketplace_listing_card.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/category_chip.dart';
 import 'marketplace_create_listing_screen.dart';
 import 'marketplace_listing_detail_screen.dart';
 import 'marketplace_my_listings_screen.dart';
+import 'chat_list_screen.dart';
+import 'chat_detail_screen.dart';
 import 'welcome_screen.dart';
 
 class MarketplaceHomeScreen extends StatefulWidget {
@@ -783,102 +786,180 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text(
-          'Camera Marketplace',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.filter_list, color: Color(0xFFFFD700)),
-                onPressed: _showFilterSheet,
-              ),
-              if (_getActiveFilterCount() > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: Text(
-                      '${_getActiveFilterCount()}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            color: const Color(0xFF1A1A1A),
-            onSelected: (value) {
-              switch (value) {
-                case 'my_listings':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MarketplaceMyListingsScreen(),
-                    ),
-                  );
-                  break;
-                case 'logout':
-                  _signOut();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'my_listings',
-                child: Row(
-                  children: [
-                    Icon(Icons.list, color: Color(0xFFFFD700)),
-                    SizedBox(width: 8),
-                    Text('My Listings', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Sign Out', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: const Color(0xFFFFD700),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFFFFD700),
-          tabs: const [
-            Tab(text: 'Browse'),
-            Tab(text: 'Featured'),
-            Tab(text: 'Recent'),
-          ],
-        ),
-      ),
       body: Column(
         children: [
+          // Custom Header
+          Container(
+            color: const Color(0xFF000000), // Black background
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 30),
+              child: Row(
+                children: [
+                  // MKPro Logo Image - Made smaller to fit better
+                  Container(
+                    height: 40,
+                    width: 80,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/images/logos/MKPro.jpg',
+                        height: 40,
+                        width: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 40,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'MKPro',
+                                style: TextStyle(
+                                  color: Color(0xFFFFD700),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // "Marketplace" label
+                  const Text(
+                    'Marketplace',
+                    style: TextStyle(
+                      color: Color(0xFFFFD700),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 3.0,
+                          color: Color(0xFFFFD700),
+                          offset: Offset(1.0, 1.0),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  // App Switcher button
+                  _buildCompactIconButton(
+                    onPressed: () => _showAppSwitcher(),
+                    icon: Icons.apps,
+                    tooltip: 'Switch App',
+                    marginRight: 4,
+                  ),
+                  // Chat button with badge
+                  StreamBuilder<int>(
+                    stream: GoogleAuthService.currentUser != null 
+                        ? ChatService.getUnreadCountStream()
+                        : Stream.value(0),
+                    builder: (context, snapshot) {
+                      final unreadCount = snapshot.data ?? 0;
+                      return _buildCompactIconButtonWithBadge(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ChatListScreen(),
+                            ),
+                          );
+                        },
+                        icon: Icons.chat,
+                        tooltip: 'My Chats',
+                        marginRight: 4,
+                        badgeCount: unreadCount,
+                      );
+                    },
+                  ),
+                  // Profile menu button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFD700).withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.person, color: Color(0xFFFFD700), size: 20),
+                      color: const Color(0xFF1A1A1A),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'my_listings':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MarketplaceMyListingsScreen(),
+                              ),
+                            );
+                            break;
+                          case 'logout':
+                            _signOut();
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.person,
+                                color: Color(0xFFFFD700),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                GoogleAuthService.currentUser?.name ?? 'User',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'my_listings',
+                          child: Row(
+                            children: [
+                              Icon(Icons.list, color: Color(0xFFFFD700)),
+                              SizedBox(width: 8),
+                              Text(
+                                'My Listings',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text(
+                                'Sign Out',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           // Search Bar
           Container(
             padding: const EdgeInsets.all(16),
@@ -1079,6 +1160,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
                 ),
               );
             },
+            onChatTap: () => _startProductChat(listing),
           );
         },
       ),
@@ -1133,5 +1215,395 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
       default:
         return 'Newest First';
     }
+  }
+
+  Future<void> _startProductChat(MarketplaceListing listing) async {
+    try {
+      final currentUser = GoogleAuthService.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to chat with sellers'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Don't allow users to chat with themselves
+      if (listing.sellerId == currentUser.id) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You cannot chat with yourself'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
+          ),
+        ),
+      );
+
+      // Create or get existing chat for this product
+      final chatId = await ChatService.createOrGetProductChat(
+        otherUserId: listing.sellerId,
+        otherUserName: listing.sellerName,
+        product: listing,
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Navigate to chat detail screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatDetailScreen(chatId: chatId),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start chat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      print('Error starting product chat: $e');
+    }
+  }
+
+  Widget _buildCompactIconButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String tooltip,
+    required double marginRight,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(right: marginRight),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, color: const Color(0xFFFFD700), size: 20),
+        tooltip: tooltip,
+        constraints: const BoxConstraints(
+          minWidth: 40,
+          minHeight: 40,
+        ),
+        padding: const EdgeInsets.all(8),
+      ),
+    );
+  }
+
+  Widget _buildCompactIconButtonWithBadge({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String tooltip,
+    required double marginRight,
+    required int badgeCount,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(right: marginRight),
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFD700).withOpacity(0.2),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              onPressed: onPressed,
+              icon: Icon(icon, color: const Color(0xFFFFD700), size: 20),
+              tooltip: tooltip,
+              constraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
+              ),
+              padding: const EdgeInsets.all(8),
+            ),
+          ),
+          if (badgeCount > 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: EdgeInsets.all(badgeCount > 99 ? 4 : 6),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 18,
+                  minHeight: 18,
+                ),
+                child: Text(
+                  badgeCount > 99 ? '99+' : badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showAppSwitcher() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: Row(
+          children: [
+            const Icon(Icons.apps, color: Color(0xFFFFD700)),
+            const SizedBox(width: 8),
+            const Text('Switch App', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Choose which app you want to use:',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            
+            // Current App (Marketplace App)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color:  Colors.purple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color:  Colors.purple,
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.storefront, color: Colors.purple),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Marketplace App',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Currently Active',
+                          style: TextStyle(
+                            color: Colors.purple,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.check_circle, color: Color(0xFFFFD700)),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Rent App
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/home');
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFFD700).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Color(0xFFFFD700).withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.camera_alt, color: Color(0xFFFFD700)),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Rent App',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Rent Equipment',
+                            style: TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Color(0xFFFFD700), size: 16),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 12),
+            
+             // Buy App
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/buy-app-home');
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.green.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.shopping_bag, color: Colors.green),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Buy App',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Buy Equipment',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.green, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamedAndRemoveUntil(context, '/app-selection', (route) => false);
+            },
+            child: const Text(
+              'Go to App Selection',
+              style: TextStyle(color: Color(0xFFFFD700)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showComingSoonDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Row(
+          children: [
+            Icon(Icons.construction, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Coming Soon', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This feature is under development and will be available soon!',
+              style: TextStyle(color: Colors.grey),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Stay tuned for updates.',
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'OK',
+              style: TextStyle(color: Color(0xFFFFD700)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:rent_app/screens/marketplace_home_screen.dart';
 import 'firebase_options.dart';
 import 'screens/app_selection_screen.dart';
 import 'screens/email_signin_screen.dart';
@@ -25,6 +26,7 @@ import 'models/buy_product.dart';
 import 'services/google_auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/category_service.dart';
+import 'services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +53,11 @@ void main() async {
     print('Initializing default categories...');
     await CategoryService.initializeDefaultCategories();
     print('Default categories initialized successfully');
+
+    // Initialize FCM Service
+    print('Initializing FCM Service...');
+    await FCMService.initialize();
+    print('FCM Service initialized successfully');
   } catch (e) {
     print('Error during initialization: $e');
     // Continue anyway - we'll handle auth errors in the UI
@@ -208,6 +215,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           case '/buy-cart':
             return MaterialPageRoute(
               builder: (context) => const BuyCartScreen(),
+            );
+
+            case '/marketplace-home':
+            return MaterialPageRoute(
+              builder: (context) => const MarketplaceHomeScreen(),
             );
           default:
             return null;

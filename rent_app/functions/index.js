@@ -110,3 +110,198 @@ exports.retryFailedNotification = functions.https.onCall(async (data, context) =
     throw error;
   }
 });
+
+// Cloud Function to process notification queue for chat messages
+exports.processNotificationQueue = functions.firestore
+    .document('notification_queue/{docId}')
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
+        
+        try {
+            // Check if already processed
+            if (data.processed) {
+                console.log('Notification already processed');
+                return null;
+            }
+
+            // Additional check for duplicate messageId if present
+            if (data.data && data.data.messageId) {
+                const existingNotifications = await admin.firestore()
+                    .collection('notification_queue')
+                    .where('data.messageId', '==', data.data.messageId)
+                    .where('processed', '==', true)
+                    .limit(1)
+                    .get();
+
+                if (!existingNotifications.empty) {
+                    console.log('Duplicate notification prevented for messageId:', data.data.messageId);
+                    await snap.ref.update({
+                        processed: true,
+                        duplicate: true,
+                        processed_at: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    return null;
+                }
+            }
+
+            // Send the notification
+            const message = {
+                token: data.to,
+                notification: data.notification,
+                data: data.data || {},
+                android: {
+                    notification: {
+                        channelId: 'chat_messages',
+                        priority: 'high',
+                        sound: 'default',
+                    }
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            alert: data.notification,
+                            sound: 'default',
+                            badge: 1
+                        }
+                    }
+                }
+            };
+
+            const response = await admin.messaging().send(message);
+            console.log('Successfully sent chat message notification:', response);
+
+            // Mark as processed
+            await snap.ref.update({
+                processed: true,
+                processed_at: admin.firestore.FieldValue.serverTimestamp(),
+                message_id: response
+            });
+
+        } catch (error) {
+            console.error('Error sending chat notification:', error);
+            
+            // Mark as failed
+            await snap.ref.update({
+                processed: true,
+                failed: true,
+                error: error.message,
+                processed_at: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        return null;
+    });
+
+// Cloud Function to send chat notifications via callable function
+exports.sendChatNotification = functions.https.onCall(async (data, context) => {
+    // Check if user is authenticated
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
+    const { receiverId, senderName, messageText, chatId, productTitle } = data;
+    
+    if (!receiverId || !senderName || !messageText || !chatId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+    }
+
+    try {
+        // Get receiver's FCM token
+        const userDoc = await admin.firestore().collection('users').doc(receiverId).get();
+        
+        if (!userDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'Receiver not found');
+        }
+
+        const userData = userDoc.data();
+        const fcmToken = userData.fcmToken;
+        
+        if (!fcmToken) {
+            console.log(`No FCM token for user ${receiverId}`);
+            return { success: false, reason: 'No FCM token' };
+        }
+
+        // Check notification settings
+        const notificationSettings = userData.notificationSettings || {};
+        if (notificationSettings.chatMessages === false) {
+            console.log(`Chat notifications disabled for user ${receiverId}`);
+            return { success: false, reason: 'Notifications disabled' };
+        }
+
+        // Prepare notification
+        const title = productTitle ? `New message about ${productTitle}` : `New message from ${senderName}`;
+        const body = messageText.length > 100 ? `${messageText.substring(0, 100)}...` : messageText;
+
+        const message = {
+            token: fcmToken,
+            notification: {
+                title: title,
+                body: body
+            },
+            data: {
+                chatId: chatId,
+                type: 'chat_message',
+                senderName: senderName,
+                ...(productTitle && { productTitle: productTitle })
+            },
+            android: {
+                notification: {
+                    channelId: 'chat_messages',
+                    priority: 'high',
+                    sound: 'default',
+                    clickAction: 'FLUTTER_NOTIFICATION_CLICK'
+                }
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        alert: {
+                            title: title,
+                            body: body
+                        },
+                        sound: 'default',
+                        badge: 1,
+                        category: 'CHAT_MESSAGE'
+                    }
+                }
+            }
+        };
+
+        // Send notification
+        const response = await admin.messaging().send(message);
+        console.log('Successfully sent chat notification via callable:', response);
+
+        return { success: true, messageId: response };
+
+    } catch (error) {
+        console.error('Error sending chat notification via callable:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to send notification');
+    }
+});
+
+// Cloud Function to clean up old notification queue entries
+exports.cleanupNotificationQueue = functions.pubsub
+    .schedule('every 24 hours')
+    .onRun(async (context) => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7); // Keep records for 7 days
+        
+        try {
+            const oldNotifications = await admin.firestore()
+                .collection('notification_queue')
+                .where('created_at', '<', admin.firestore.Timestamp.fromDate(cutoff))
+                .get();
+            
+            const batch = admin.firestore().batch();
+            oldNotifications.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            
+            await batch.commit();
+            console.log(`Cleaned up ${oldNotifications.docs.length} old notification records`);
+        } catch (error) {
+            console.error('Error cleaning up notification queue:', error);
+        }
+        
+        return null;
+    });
