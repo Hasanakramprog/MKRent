@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/marketplace_listing.dart';
+import 'cached_image_widget.dart';
 
 class MarketplaceListingCard extends StatelessWidget {
   final MarketplaceListing listing;
@@ -53,10 +54,10 @@ class MarketplaceListingCard extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                       child: listing.imageUrls.isNotEmpty
-                          ? Image.network(
-                              listing.imageUrls.first,
+                          ? CachedImageWidget(
+                              imageUrl: listing.imageUrls.first,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
+                              errorWidget: (context, url, error) {
                                 return Container(
                                   color: Colors.grey[800],
                                   child: const Icon(

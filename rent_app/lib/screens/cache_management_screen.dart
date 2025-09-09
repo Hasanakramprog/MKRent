@@ -92,6 +92,40 @@ class _CacheManagementScreenState extends State<CacheManagementScreen> {
     }
   }
 
+  Future<void> _clearFirebaseStorageCache() async {
+    setState(() {
+      _isClearing = true;
+    });
+
+    try {
+      await ImageCacheManager.clearFirebaseStorageCache();
+      await _updateCacheSize();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Firebase Storage cache cleared successfully! Restart the app to reload images.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error clearing Firebase Storage cache: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isClearing = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -289,6 +323,35 @@ class _CacheManagementScreenState extends State<CacheManagementScreen> {
                   ),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Firebase Storage Cache Clear Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isClearing || _isTesting ? null : _clearFirebaseStorageCache,
+                icon: _isClearing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.cloud_off),
+                label: Text(_isClearing ? 'Clearing Firebase Cache...' : 'Clear Firebase Storage Cache'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF5722),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
             ),
 
             // Test Results

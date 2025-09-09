@@ -28,11 +28,32 @@ class CachedImageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Clean the image URL to remove any authentication parameters that might cause issues
+    String cleanImageUrl = imageUrl;
+    if (imageUrl.contains('firebasestorage.googleapis.com')) {
+      // For Firebase Storage URLs, ensure we use the public access format
+      final uri = Uri.parse(imageUrl);
+      if (!uri.queryParameters.containsKey('alt') || uri.queryParameters['alt'] != 'media') {
+        final pathSegments = uri.pathSegments;
+        if (pathSegments.length >= 4 && pathSegments[0] == 'v0' && pathSegments[1] == 'b' && pathSegments[3] == 'o') {
+          // Reconstruct URL with proper alt=media parameter for public access
+          final bucket = pathSegments[2];
+          final filePath = pathSegments.skip(4).join('/');
+          cleanImageUrl = 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/${Uri.encodeComponent(filePath)}?alt=media';
+          debugPrint('🔧 Cleaned Firebase Storage URL: $cleanImageUrl');
+        }
+      }
+    }
+
     Widget cachedImage = CachedNetworkImage(
-      imageUrl: imageUrl,
+      imageUrl: cleanImageUrl,
       width: width,
       height: height,
       fit: fit,
+      httpHeaders: const {
+        // Don't send any authentication headers for public images
+        'Cache-Control': 'max-age=3600',
+      },
       placeholder: placeholder ??
           (context, url) {
             // Log when image is being loaded (not cached)
@@ -174,9 +195,25 @@ class ImageCacheManager {
     debugPrint('🗑️ Image cache cleared');
   }
 
+  static Future<void> clearFirebaseStorageCache() async {
+    try {
+      await DefaultCacheManager().emptyCache();
+      // Also evict all CachedNetworkImage cache
+      await CachedNetworkImage.evictFromCache('');
+      debugPrint('🗑️ Firebase Storage image cache cleared completely');
+    } catch (e) {
+      debugPrint('❌ Error clearing Firebase Storage cache: $e');
+    }
+  }
+
   static Future<void> clearCacheForUrl(String url) async {
-    await DefaultCacheManager().removeFile(url);
-    debugPrint('🗑️ Cache cleared for: ${url.substring(url.lastIndexOf('/') + 1)}');
+    try {
+      await DefaultCacheManager().removeFile(url);
+      await CachedNetworkImage.evictFromCache(url);
+      debugPrint('🗑️ Cache cleared for: ${url.substring(url.lastIndexOf('/') + 1)}');
+    } catch (e) {
+      debugPrint('❌ Error clearing cache for URL: $e');
+    }
   }
 
   static Future<bool> isImageCached(String url) async {
@@ -207,21 +244,32 @@ class ImageCacheManager {
   }
 
   static Future<String> getCacheSizeFormatted() async {
-    final bytes = await getCacheSize();
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    try {
+      final size = await getCacheSize();
+      if (size > 1024 * 1024) {
+        return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+      } else if (size > 1024) {
+        return '${(size / 1024).toStringAsFixed(1)} KB';
+      } else {
+        return '$size bytes';
+      }
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 
-  // Method to test caching behavior
-  static Future<void> testCachingBehavior(String imageUrl) async {
-    debugPrint('🧪 Testing cache behavior for: ${imageUrl.substring(imageUrl.lastIndexOf('/') + 1)}');
+  static Future<void> testCachingBehavior(String testUrl) async {
+    debugPrint('🧪 Testing caching behavior for: $testUrl');
     
-    final stopwatch = Stopwatch()..start();
-    final isCached = await isImageCached(imageUrl);
-    stopwatch.stop();
+    // Clear cache for test URL first
+    await clearCacheForUrl(testUrl);
     
-    debugPrint('⏱️ Cache check took: ${stopwatch.elapsedMilliseconds}ms');
-    debugPrint(isCached ? '✅ Image is cached' : '❌ Image not in cache');
+    // Test if URL is accessible
+    try {
+      final cached = await isImageCached(testUrl);
+      debugPrint('🧪 Initial cache state: ${cached ? 'CACHED' : 'NOT CACHED'}');
+    } catch (e) {
+      debugPrint('🧪 Cache test error: $e');
+    }
   }
 }

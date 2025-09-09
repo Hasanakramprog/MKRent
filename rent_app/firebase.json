@@ -3,6 +3,9 @@
     "source": "functions",
     "runtime": "nodejs18"
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "flutter": {
     "platforms": {
       "android": {

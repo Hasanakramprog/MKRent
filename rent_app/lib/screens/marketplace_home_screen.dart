@@ -13,6 +13,7 @@ import 'marketplace_listing_detail_screen.dart';
 import 'marketplace_my_listings_screen.dart';
 import 'chat_list_screen.dart';
 import 'chat_detail_screen.dart';
+import 'public_chat_screen.dart';
 import 'welcome_screen.dart';
 
 class MarketplaceHomeScreen extends StatefulWidget {
@@ -22,11 +23,8 @@ class MarketplaceHomeScreen extends StatefulWidget {
   State<MarketplaceHomeScreen> createState() => _MarketplaceHomeScreenState();
 }
 
-class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  
+class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   List<MarketplaceListing> _allListings = [];
-  List<MarketplaceListing> _featuredListings = [];
   List<MarketplaceListing> _filteredListings = [];
   
   String _searchQuery = '';
@@ -77,13 +75,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _loadData();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _debounceTimer?.cancel(); // Cancel any pending timer
     _minPriceController.dispose();
     _maxPriceController.dispose();
@@ -107,13 +103,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
       
       final futures = await Future.wait([
         MarketplaceService.getListings(),
-        MarketplaceService.getFeaturedListings(),
         MarketplaceService.getCategories(), // Load categories from Firebase
       ]);
       
       _allListings = futures[0] as List<MarketplaceListing>;
-      _featuredListings = futures[1] as List<MarketplaceListing>;
-      _categories = futures[2] as List<String>; // Set categories from Firebase
+      _categories = futures[1] as List<String>; // Set categories from Firebase
       _filteredListings = _allListings;
     } catch (e) {
       print('Error loading marketplace data: $e');
@@ -1073,29 +1067,87 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
                       valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
                     ),
                   )
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildListingsGrid(_filteredListings),
-                      _buildListingsGrid(_featuredListings),
-                      _buildListingsGrid(_allListings),
-                    ],
-                  ),
+                : _buildListingsGrid(_filteredListings),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MarketplaceCreateListingScreen(),
-            ),
-          ).then((_) => _loadData()); // Refresh after creating listing
-        },
-        backgroundColor: const Color(0xFFFFD700),
-        foregroundColor: Colors.black,
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Discussion FAB with label
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PublicChatScreen(),
+                    ),
+                  );
+                },
+                backgroundColor: const Color(0xFF404040),
+                foregroundColor: Colors.white,
+                heroTag: "discussion_fab",
+                child: const Icon(Icons.forum),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Discussion',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Add Product FAB with label
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MarketplaceCreateListingScreen(),
+                    ),
+                  ).then((_) => _loadData()); // Refresh after creating listing
+                },
+                backgroundColor: const Color(0xFFFFD700),
+                foregroundColor: Colors.black,
+                heroTag: "add_product_fab",
+                child: const Icon(Icons.add_box),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Add Product',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1223,19 +1275,8 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
       if (currentUser == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please sign in to chat with sellers'),
+            content: Text('Please sign in to chat about this product'),
             backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // Don't allow users to chat with themselves
-      if (listing.sellerId == currentUser.id) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You cannot chat with yourself'),
-            backgroundColor: Colors.orange,
           ),
         );
         return;
@@ -1252,10 +1293,8 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
         ),
       );
 
-      // Create or get existing chat for this product
+      // Create or get existing chat for this product (will connect to admin with random name)
       final chatId = await ChatService.createOrGetProductChat(
-        otherUserId: listing.sellerId,
-        otherUserName: listing.sellerName,
         product: listing,
       );
 
@@ -1559,46 +1598,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> with Sing
             },
             child: const Text(
               'Go to App Selection',
-              style: TextStyle(color: Color(0xFFFFD700)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showComingSoonDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Row(
-          children: [
-            Icon(Icons.construction, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Coming Soon', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'This feature is under development and will be available soon!',
-              style: TextStyle(color: Colors.grey),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Stay tuned for updates.',
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK',
               style: TextStyle(color: Color(0xFFFFD700)),
             ),
           ),

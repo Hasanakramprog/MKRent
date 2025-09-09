@@ -1368,6 +1368,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 },
               ),
               
+              const SizedBox(height: 12),
+              
+              // Cache Management Option
+              _buildAdminOption(
+                context: context,
+                title: 'Cache Management',
+                subtitle: 'Clear Firebase Storage image cache',
+                icon: Icons.storage,
+                color: const Color(0xFF4CAF50),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/cache-management');
+                },
+              ),
+              
               const SizedBox(height: 20),
             ],
           ),

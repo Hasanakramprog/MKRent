@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import '../models/marketplace_listing.dart';
+import '../models/user.dart';
 import '../services/google_auth_service.dart';
 import '../services/fcm_service.dart';
 
@@ -11,15 +12,71 @@ class ChatService {
   static const String _messagesCollection = 'messages';
   static const int _messagesPerPage = 20;
 
-  // Create or get existing chat between two users for a specific product
+  // List of random Lebanese names for admin chat personas
+  static final List<String> _adminPersonaNames = [
+    'Ahmad Khalil',
+    'Layla Mansour',
+    'Omar Saab',
+    'Nour Haddad',
+    'Karim Fadel',
+    'Rania Khoury',
+    'Sami Nasr',
+    'Maya Jaber',
+    'Fadi Tawk',
+    'Sara Douaihy',
+    'Rami Fares',
+    'Dina Sleiman',
+    'Walid Chami',
+    'Lina Harb',
+    'Elie Frem',
+  ];
+
+  // Get a random admin user
+  static Future<AppUser?> _getRandomAdmin() async {
+    try {
+      final adminQuery = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'admin')
+          .limit(10)
+          .get();
+      
+      if (adminQuery.docs.isNotEmpty) {
+        final adminDocs = adminQuery.docs;
+        final randomIndex = DateTime.now().millisecondsSinceEpoch % adminDocs.length;
+        final adminDoc = adminDocs[randomIndex];
+        return AppUser.fromMap(adminDoc.data());
+      }
+      return null;
+    } catch (e) {
+      print('Error getting random admin: $e');
+      return null;
+    }
+  }
+
+  // Get a random persona name for the admin
+  static String _getRandomPersonaName(String productId) {
+    // Use product ID to ensure consistent name for same product
+    final seed = productId.hashCode.abs();
+    final index = seed % _adminPersonaNames.length;
+    return _adminPersonaNames[index];
+  }
+
+  // Create or get existing chat between user and admin for a specific product
   static Future<String> createOrGetProductChat({
-    required String otherUserId,
-    required String otherUserName,
     required MarketplaceListing product,
   }) async {
     try {
       final currentUser = GoogleAuthService.currentUser!;
-      final participantIds = [currentUser.id, otherUserId]..sort();
+      
+      // Get a random admin to chat with instead of the seller
+      final admin = await _getRandomAdmin();
+      if (admin == null) {
+        throw Exception('No admin available for chat');
+      }
+      
+      // Use admin as the other participant, but with a random persona name
+      final adminPersonaName = _getRandomPersonaName(product.id);
+      final participantIds = [currentUser.id, admin.id]..sort();
       
       // Create a unique chat ID for this product conversation
       final chatId = '${participantIds.join('_')}_${product.id}';
@@ -27,17 +84,17 @@ class ChatService {
       final chatDoc = await _firestore.collection(_chatsCollection).doc(chatId).get();
       
       if (!chatDoc.exists) {
-        // Create new chat
+        // Create new chat with admin (using persona name)
         final chat = Chat(
           id: chatId,
           participantIds: participantIds,
           participantNames: {
             currentUser.id: currentUser.name,
-            otherUserId: otherUserName,
+            admin.id: adminPersonaName, // Use persona name instead of real admin name
           },
           lastReadTimestamp: {
             currentUser.id: DateTime.now(),
-            otherUserId: DateTime.now(),
+            admin.id: DateTime.now(),
           },
           productId: product.id,
           productTitle: product.title,

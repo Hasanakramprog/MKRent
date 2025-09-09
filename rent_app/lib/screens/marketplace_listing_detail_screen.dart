@@ -4,6 +4,7 @@ import '../models/marketplace_listing.dart';
 import '../services/marketplace_service.dart';
 import '../services/google_auth_service.dart';
 import '../services/chat_service.dart';
+import '../widgets/cached_image_widget.dart';
 import 'chat_detail_screen.dart';
 
 class MarketplaceListingDetailScreen extends StatefulWidget {
@@ -92,18 +93,12 @@ class _MarketplaceListingDetailScreenState extends State<MarketplaceListingDetai
     try {
       final currentUser = GoogleAuthService.currentUser;
       if (currentUser == null) {
-        _showSnackBar('Please sign in to chat with sellers', Colors.red);
+        _showSnackBar('Please sign in to chat about this product', Colors.red);
         return;
       }
 
       if (_listing == null) {
         _showSnackBar('Listing not found', Colors.red);
-        return;
-      }
-
-      // Don't allow users to chat with themselves
-      if (_listing!.sellerId == currentUser.id) {
-        _showSnackBar('You cannot chat with yourself', Colors.orange);
         return;
       }
 
@@ -118,10 +113,8 @@ class _MarketplaceListingDetailScreenState extends State<MarketplaceListingDetai
         ),
       );
 
-      // Create or get existing chat for this product
+      // Create or get existing chat for this product (will connect to admin with random name)
       final chatId = await ChatService.createOrGetProductChat(
-        otherUserId: _listing!.sellerId,
-        otherUserName: _listing!.sellerName,
         product: _listing!,
       );
 
@@ -204,10 +197,10 @@ class _MarketplaceListingDetailScreenState extends State<MarketplaceListingDetai
                           },
                           itemCount: _listing!.imageUrls.length,
                           itemBuilder: (context, index) {
-                            return Image.network(
-                              _listing!.imageUrls[index],
+                            return CachedImageWidget(
+                              imageUrl: _listing!.imageUrls[index],
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
+                              errorWidget: (context, url, error) {
                                 return Container(
                                   color: const Color(0xFF2A2A2A),
                                   child: const Icon(
@@ -316,64 +309,63 @@ class _MarketplaceListingDetailScreenState extends State<MarketplaceListingDetai
                   const SizedBox(height: 16),
 
                   // MKPro Chat Button
-                  if (_listing!.sellerId != GoogleAuthService.currentUser?.id)
-                    GestureDetector(
-                      onTap: () => _startProductChat(),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1A),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFFFD700),
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFFD700).withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                  GestureDetector(
+                    onTap: () => _startProductChat(),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFFFD700),
+                          width: 2,
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFD700).withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.chat,
-                                color: Color(0xFFFFD700),
-                                size: 24,
-                              ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFFD700).withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD700).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const SizedBox(width: 16),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'MKPro Chat',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Chat with seller about this product',
-                                    style: TextStyle(
-                                      color: Color(0xFFFFD700),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            child: const Icon(
+                              Icons.chat,
+                              color: Color(0xFFFFD700),
+                              size: 24,
                             ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'MKPro Chat',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Get help about this product',
+                                  style: TextStyle(
+                                    color: Color(0xFFFFD700),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                             const Icon(
                               Icons.arrow_forward_ios,
                               color: Color(0xFFFFD700),
