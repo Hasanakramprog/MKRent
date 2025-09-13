@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/google_auth_service.dart';
 import 'marketplace_home_screen.dart';
+import 'training_home_screen.dart';
 
 class AppSelectionScreen extends StatelessWidget {
   const AppSelectionScreen({super.key});
@@ -137,13 +138,8 @@ class AppSelectionScreen extends StatelessWidget {
                     description: 'Professional courses for cameras, drones, and photography techniques',
                     icon: Icons.school,
                     color: const Color(0xFF2196F3),
-                    isAvailable: false,
-                    onTap: () => _showComingSoon(
-                      context,
-                      'Photography Training Hub',
-                      'Learn & Master Skills',
-                      'Coming soon! Comprehensive training courses covering camera techniques, drone operations, photography fundamentals, and advanced skills from industry professionals!'
-                    ),
+                    isAvailable: true,
+                    onTap: () => _handleTrainingSelection(context),
                   ),
                   
                   const SizedBox(height: 6),
@@ -401,6 +397,32 @@ class AppSelectionScreen extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (context) => const MarketplaceHomeScreen(),
+        ),
+      );
+    });
+  }
+
+  void _handleTrainingSelection(BuildContext context) {
+    // Show loading indicator while loading training content
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+        ),
+      ),
+    );
+
+    // Small delay to show loading (better UX)
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.pop(context); // Close loading dialog
+      
+      // Navigate to training home screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const TrainingHomeScreen(),
         ),
       );
     });

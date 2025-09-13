@@ -46,6 +46,8 @@ dependencies:
   google_sign_in: ^6.2.1
   flutter_svg: ^2.0.10+1
   url_launcher: ^6.2.4
+  http: ^1.1.0
+  youtube_player_flutter: ^9.0.3
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +88,8 @@ flutter:
     - assets/images/brands/
     # Logos
     - assets/logos/
+    # Data files
+    - assets/data/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
